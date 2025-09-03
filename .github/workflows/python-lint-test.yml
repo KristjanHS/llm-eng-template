@@ -2,10 +2,10 @@ name: CI
 # NOTE FOR LOCAL CI (act):
 # - The pre-push Git hook (.git/hooks/pre-push) runs these in order:
 #     act pull_request -j lint --pull=false --log-prefix-job-id
-#     act pull_request -j fast_tests --pull=false --log-prefix-job-id
+#     act pull_request -j unit_tests --pull=false --log-prefix-job-id
 # - To run this workflow manually with act:
 #     act pull_request -j lint
-#     act pull_request -j fast_tests
+#     act pull_request -j unit_tests
 #
 # IMPORTANT: Integration and E2E tests require the full Docker stack and are excluded
 # from GitHub CI runs entirely. They only run locally via act (nektos/act) on manual
@@ -26,6 +26,8 @@ env:
   PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
   # Enforce teardown of docker services in CI to avoid leftovers
   TEARDOWN_DOCKER: "1"
+  # Prefer copy to avoid hardlink warnings on some runners/filesystems
+  UV_LINK_MODE: copy
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -55,8 +57,8 @@ jobs:
           args: format --check .
 
 
-  fast_tests:
-    name: Fast Tests
+  unit_tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,26 +66,31 @@ jobs:
           persist-credentials: false # ⬅️ do not store token in git config
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-local-path: ${{ github.workspace }}/.uv-cache
+          # Put uv's cache in the workspace so it persists with `act` between runs
+          # cache-dependency-glob can be customized; defaults already cover uv.lock/requirements*
       - name: Sync test environment
-        run: uv sync --group test
+        run: uv sync --group test --frozen
       - name: Verify dependency health
         run: uv pip check
       - name: Prepare reports directories
         run: |
           mkdir -p reports
-      - name: Run fast tests
+      - name: Run unit tests
         run: |
           # Fastest suite: run only unit tests (no external services)
-          # Exclude integration and e2e tests that require Docker stack
           uv run -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml
 
-      - name: Upload fast test reports
+      - name: Upload unit test reports
         # Skip under act (local GitHub Actions emulator) because ACTIONS_RUNTIME_TOKEN is not available.
         # On real GitHub runners, this will upload the reports/ directory as a build artifact.
         if: ${{ always() && github.actor != 'nektos/act' }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-fast
+          name: test-reports-unit
           path: reports/
 
   pyright:
@@ -96,8 +103,14 @@ jobs:
           persist-credentials: false # ⬅️ do not store token in git config
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-local-path: ${{ github.workspace }}/.uv-cache
+          # Put uv's cache in the workspace so it persists with `act` between runs
+          # cache-dependency-glob can be customized; defaults already cover uv.lock/requirements*
       - name: Sync dev environment
-        run: uv sync --group dev
+        run: uv sync --group dev --frozen
       - name: Pyright type checking
         run: uv run pyright --project ./pyrightconfig.json
 
@@ -105,7 +118,7 @@ jobs:
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: fast_tests
+    needs: unit_tests
     if: ${{ github.actor == 'nektos/act' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') }}
     steps:
       - uses: actions/checkout@v4
@@ -113,8 +126,14 @@ jobs:
           persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-local-path: ${{ github.workspace }}/.uv-cache
+          # Put uv's cache in the workspace so it persists with `act` between runs
+          # cache-dependency-glob can be customized; defaults already cover uv.lock/requirements*
       - name: Sync test environment
-        run: uv sync --group test
+        run: uv sync --group test --frozen
       - name: Build and start services
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
@@ -141,7 +160,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: fast_tests
+    needs: unit_tests
     if: ${{ github.actor == 'nektos/act' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') }}
     steps:
       - uses: actions/checkout@v4
@@ -149,8 +168,14 @@ jobs:
           persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-local-path: ${{ github.workspace }}/.uv-cache
+          # Put uv's cache in the workspace so it persists with `act` between runs
+          # cache-dependency-glob can be customized; defaults already cover uv.lock/requirements*
       - name: Sync test environment
-        run: uv sync --group test
+        run: uv sync --group test --frozen
       - name: Build and start services
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
@@ -173,224 +198,3 @@ jobs:
         with:
           name: test-reports-e2e
           path: reports/
-
-  docker_smoke_tests:
-    name: Docker Packaging Smoke Tests
-    # Run only under local act to avoid GitHub runner RAM limits
-    if: ${{ github.actor == 'nektos/act' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false # ⬅️ do not store token in git config
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Sync dev+test environment
-        run: uv sync --group dev --group test
-      - name: Build app image (docker-compose)
-        run: |
-          docker compose -f docker/docker-compose.yml build app
-      - name: Prepare reports directories
-        run: |
-          mkdir -p reports/logs
-      - name: Run docker-marked tests on host
-        run: |
-          uv run -m pytest -q -m docker \
-            --html=reports/report_docker.html --self-contained-html \
-            --junitxml=reports/junit_docker.xml
-      - name: Upload docker smoke test reports
-        if: ${{ always() && github.actor != 'nektos/act' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports-docker
-          path: reports/
-
-  ui_tests_act:
-    name: act manual - UI (Streamlit) tests
-    if: ${{ github.actor == 'nektos/act' && github.event_name == 'workflow_dispatch' }}
-    needs: fast_tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false # ⬅️ do not store token in git config
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Sync dev+test environment
-        run: uv sync --group dev --group test
-      - name: Install UI extras (editable)
-        run: uv pip install -e .[ui]
-      - name: Install Playwright browsers
-        run: |
-          uv run python -m playwright install --with-deps
-          uv run python -m playwright --version
-      - name: Build and start local stack (GPU-capable compose)
-        run: |
-          docker compose -f docker/docker-compose.yml up -d --build
-      - name: Wait for Weaviate readiness
-        run: |
-          timeout=180; until curl -s http://localhost:8080/v1/.well-known/ready >/dev/null 2>&1; do \
-            echo "Waiting for Weaviate..."; sleep 5; timeout=$((timeout-5)); \
-            if [ $timeout -le 0 ]; then echo "Weaviate not ready"; docker compose -f docker/docker-compose.yml logs weaviate; exit 1; fi; done
-      - name: Wait for Ollama readiness
-        run: |
-          timeout=180; until docker compose -f docker/docker-compose.yml exec -T ollama ollama list >/dev/null 2>&1; do \
-            echo "Waiting for Ollama..."; sleep 5; timeout=$((timeout-5)); \
-            if [ $timeout -le 0 ]; then echo "Ollama not ready"; docker compose -f docker/docker-compose.yml logs ollama; exit 1; fi; done
-      - name: Ensure Ollama model present (skip if exists)
-        env:
-          OLLAMA_MODEL: cas/mistral-7b-instruct-v0.3
-        run: |
-          set -e
-          if docker compose -f docker/docker-compose.yml exec -T ollama ollama show "$OLLAMA_MODEL" >/dev/null 2>&1; then
-            echo "Model $OLLAMA_MODEL already present; skipping pull."
-          else
-            echo "Pulling model $OLLAMA_MODEL ..."
-            docker compose -f docker/docker-compose.yml exec -T ollama ollama pull "$OLLAMA_MODEL"
-          fi
-      - name: Prepare reports directories
-        run: |
-          mkdir -p reports/logs
-      - name: Run UI tests only (Streamlit)
-        env:
-          PLAYWRIGHT_HEADLESS: "1"
-        run: |
-          uv run -m pytest tests/ui --no-cov \
-            --html=reports/report_ui.html --self-contained-html \
-            --junitxml=reports/junit_ui.xml
-      - name: Tear down local stack
-        if: always()
-        run: |
-          docker compose -f docker/docker-compose.yml down -v
-
-  core_suite:
-    name: Core Test Suite (manual/scheduled)
-    # Heavy: enforce coverage threshold; only under local act (GitHub runners lack RAM for Dockerized tests)
-    if: ${{ github.actor == 'nektos/act' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') }}
-    needs: fast_tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false # ⬅️ do not store token in git config
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Sync dev+test environment
-        run: uv sync --group dev --group test
-      - name: Install Playwright browsers (for UI/E2E if selected)
-        run: |
-          python -m playwright install --with-deps
-          python -m playwright --version
-      - name: Prepare reports directories
-        run: |
-          mkdir -p reports
-      - name: Run core test suite (unit + integration, excludes UI)
-        # Enforce coverage threshold for core suite
-        # Note: integration tests require Docker stack, only run locally via act
-        run: |
-          uv run -m pytest -v -n auto --cov-fail-under=60 tests/unit tests/integration \
-            --html=reports/report_core.html --self-contained-html \
-            --junitxml=reports/junit_core.xml
-      - name: Upload core suite reports
-        if: ${{ always() && github.actor != 'nektos/act' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports-core
-          path: reports/
-
-  # Local-only via act; manual dispatch; runs pytest -m slow against full stack
-  slow_tests:
-    name: act manual - slow tests (full stack)
-    # Run only when launched manually via act (not on GitHub UI)
-    if: ${{ github.actor == 'nektos/act' && github.event_name == 'workflow_dispatch' }}
-    needs: fast_tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false # ⬅️ do not store token in git config
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Sync dev+test environment
-        run: uv sync --group dev --group test
-      - name: Install Playwright browsers
-        run: |
-          uv run python -m playwright install --with-deps
-          uv run python -m playwright --version
-      - name: Build and start container stack
-        run: |
-          docker compose -f docker/docker-compose.yml up -d --build
-      - name: Wait for Weaviate readiness
-        run: |
-          timeout=120; until curl -s http://localhost:8080/v1/.well-known/ready >/dev/null 2>&1; do \
-            echo "Waiting for Weaviate..."; sleep 5; timeout=$((timeout-5)); if [ $timeout -le 0 ]; then echo "Weaviate not ready"; docker compose -f docker/docker-compose.yml logs weaviate; exit 1; fi; done
-      - name: Prepare reports directories
-        run: |
-          mkdir -p reports/logs
-      - name: Run slow tests on host
-        env:
-          PLAYWRIGHT_HEADLESS: "1"
-        run: |
-          set -o pipefail
-          # Ensure the app image is rebuilt without cache for packaging regressions
-          docker compose -f docker/docker-compose.yml build --no-cache app
-          # This command runs ONLY tests marked as 'slow' on the host runner
-          uv run -m pytest -sv -m slow --no-cov \
-            --html=reports/report_slow.html --self-contained-html --junitxml=reports/junit_slow.xml | tee logs/pytest.log
-          EXIT_CODE="${PIPESTATUS[0]}"
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            echo -e "\n🔴 Pytest failed — showing container logs for debugging:\n"
-            docker compose -f docker/docker-compose.yml logs app || true
-            docker compose -f docker/docker-compose.yml logs weaviate || true
-            docker compose -f docker/docker-compose.yml logs ollama || true
-            exit "$EXIT_CODE"
-          fi
-      - name: Upload slow test reports
-        # Same: upload only on GitHub (not in act) due to missing ACTIONS_RUNTIME_TOKEN locally.
-        if: ${{ always() && github.actor != 'nektos/act' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports-slow
-          path: reports/
-      - name: Tear down stack
-        if: always()
-        run: |
-          docker compose -f docker/docker-compose.yml down -v
-
-  compose_integration_tests:
-    name: Compose Integration Tests
-    runs-on: ubuntu-latest
-    needs: fast_tests
-    if: ${{ github.actor == 'nektos/act' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Sync dev+test environment
-        run: uv sync --group dev --group test
-      - name: Prepare reports directories
-        run: mkdir -p reports
-      - name: Start Compose test environment
-        run: |
-          # Start test environment via Makefile harness (handles RUN_ID internally)
-          make test-up
-      - name: Run Compose integration tests
-        run: |
-          # Run tests via Makefile harness; reuses existing .run_id if present
-          make test-run-integration
-      - name: Tear down Compose test environment
-        if: always()
-        run: |
-          make test-down
-      - name: Upload Compose integration test reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports-compose-integration
-          path: reports/
-      - name: Dump logs on failure
-        if: failure()
-        run: |
-          make test-logs

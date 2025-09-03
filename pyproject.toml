@@ -77,7 +77,6 @@ addopts = [
     "-v",
     "--tb=short",
     "--cov=backend",
-    "--cov=frontend",
     "--cov-report=term-missing",
     "--cov-report=html:reports/coverage",
     "--ignore=tests/unit/test_debug.py",

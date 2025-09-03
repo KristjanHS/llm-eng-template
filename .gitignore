@@ -29,6 +29,7 @@ dist/
 .test-build*
 .cache/
 .pre-commit-cache/
+.uv-cache/
 
 # Jupyter
 .ipynb_checkpoints/
