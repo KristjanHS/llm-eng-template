@@ -8,3 +8,6 @@
 
 # Auto-cleanup containers and volumes after each run to prevent accumulation
 --rm
+
+# --bind tells act to mount your working directory into the job container instead of copying it, so .uv-cache/ will persist on your host after the job exits.
+--bind
