@@ -1,0 +1,55 @@
+name: llm-eng-template
+services:
+
+  # ---------- Local LLM server ---------------------------------------------------
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ../model_cache:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ---------- App Container -----------------------------------------
+  app:
+    image: app
+    build:
+      context: ..
+      dockerfile: docker/app.Dockerfile
+      target: runtime
+
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../backend:/app/backend # Live backend code
+      - ../frontend:/app/frontend # Live frontend code
+      - ../logs:/app/logs # Live log access
+      - ../tests:/app/tests # Mount tests for in-container testing
+    working_dir: /app
+    # Auto-start Streamlit when container starts (headless + no telemetry)
+    command: ["python", "-m", "backend.main"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8501/_stcore/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      # Point the Python code to the other services inside the compose network
+      - OLLAMA_URL=http://ollama:11434
+      - APP_LOG_DIR=/app/logs

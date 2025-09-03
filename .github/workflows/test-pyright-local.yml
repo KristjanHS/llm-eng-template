@@ -1,0 +1,19 @@
+name: Test Pyright Local
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pyright:
+    name: Pyright
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Sync dev environment
+        run: uv sync --group dev
+      - name: Pyright type checking
+        run: uv run pyright --project ./pyrightconfig.json
