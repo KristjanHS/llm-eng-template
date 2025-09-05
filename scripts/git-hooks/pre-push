@@ -110,8 +110,12 @@ else
     else
       # Native fast path for quick feedback when act isn't available
       if [[ -x ".venv/bin/python" ]]; then
-        log INFO "Running native unit tests: pytest tests/unit --maxfail=1 -q …" | tee -a "$LOG_FILE"
-        .venv/bin/python -m pytest tests/unit --maxfail=1 -q 2>&1 | tee -a "$LOG_FILE"
+        log INFO "Running native unit tests: pytest tests/unit --maxfail=1 -q --no-cov …" | tee -a "$LOG_FILE"
+        # Disable coverage for the fast native unit run to avoid
+        # noisy 'No data was collected' warnings when backend code
+        # isn't exercised in unit-only scope. Full coverage still
+        # runs in CI and when invoking broader suites.
+        .venv/bin/python -m pytest tests/unit --maxfail=1 -q --no-cov 2>&1 | tee -a "$LOG_FILE"
       else
         log WARN "'.venv/bin/python' not found; cannot run native unit tests." | tee -a "$LOG_FILE"
       fi
