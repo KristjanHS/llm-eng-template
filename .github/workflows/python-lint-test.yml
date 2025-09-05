@@ -66,32 +66,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false # ⬅️ do not store token in git config
-      # Pick the Python you want, without letting setup-uv create .venv
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      # Install uv and enable its cache, but DON'T pass python-version here
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          # keep the glob tight so we don't hash pre-commit's vendor copies
-          cache-dependency-glob: |
-            uv.lock
-            pyproject.toml
-          cache-local-path: ${{ github.workspace }}/.uv-cache
-      - name: Sync test environment
-        # uses .venv-ci (not .venv)
-        run: uv sync --group test --frozen
-      - name: Verify dependency health
-        run: uv pip check
-      - name: Prepare reports directories
-        run: |
-          mkdir -p reports
-      - name: Run unit tests
-        run: |
-          # Fastest suite: run only unit tests (no external services)
-          uv run -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
+      - name: Sync test env + check
+        run: make uv-sync-test
+      - name: Run unit tests (Makefile)
+        run: make unit-local
       - name: Upload unit test reports
         # Skip under act (local GitHub Actions emulator) because ACTIONS_RUNTIME_TOKEN is not available.
         # On real GitHub runners, this will upload the reports/ directory as a build artifact.
@@ -109,23 +89,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false # ⬅️ do not store token in git config
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      # Install uv and enable its cache, but DON'T pass python-version here
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          # keep the glob tight so we don't hash pre-commit's vendor copies
-          cache-dependency-glob: |
-            uv.lock
-            pyproject.toml
-          cache-local-path: ${{ github.workspace }}/.uv-cache
-      - name: Sync dev environment
-        run: uv sync --group dev --frozen
-      - name: Pyright type checking
-        run: uv run pyright --project ./pyrightconfig.json
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
+      - name: Sync test env (Makefile)
+        run: make uv-sync-test
+      - name: Pyright (Makefile)
+        run: make pyright
 
 
   integration:
@@ -137,21 +106,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      # Install uv and enable its cache, but DON'T pass python-version here
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          # keep the glob tight so we don't hash pre-commit's vendor copies
-          cache-dependency-glob: |
-            uv.lock
-            pyproject.toml
-          cache-local-path: ${{ github.workspace }}/.uv-cache
-      - name: Sync test environment
-        run: uv sync --group test --frozen
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
+      - name: Sync test env (Makefile)
+        run: make uv-sync-test
       - name: Build and start services
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
@@ -184,21 +142,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      # Install uv and enable its cache, but DON'T pass python-version here
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          # keep the glob tight so we don't hash pre-commit's vendor copies
-          cache-dependency-glob: |
-            uv.lock
-            pyproject.toml
-          cache-local-path: ${{ github.workspace }}/.uv-cache
-      - name: Sync test environment
-        run: uv sync --group test --frozen
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
+      - name: Sync test env (Makefile)
+        run: make uv-sync-test
       - name: Build and start services
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready

@@ -94,9 +94,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
 
       - name: Run Semgrep scan (no metrics) via uvx
         run: |
