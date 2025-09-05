@@ -23,7 +23,13 @@ log INFO "Starting pre-push checks" | tee -a "$LOG_FILE"
 
 # Detect if 'act' is available; we'll use native tools where possible and only run act-based steps when available
 if command -v act >/dev/null 2>&1; then
-  ACT_AVAILABLE=1
+  # Verify Docker is available since act requires it
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    ACT_AVAILABLE=1
+  else
+    ACT_AVAILABLE=0
+    log WARN "'act' found but Docker is unavailable. Falling back to native checks (ruff/pyright/pytest). Start Docker or set SKIP_TESTS=1 to skip tests." | tee -a "$LOG_FILE"
+  fi
 else
   ACT_AVAILABLE=0
   log WARN "'act' not found. Will run native checks only (ruff/pyright); skipping act-based steps. Install: https://github.com/nektos/act" | tee -a "$LOG_FILE"
