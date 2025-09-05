@@ -1,16 +1,16 @@
-.PHONY: \
-  # Meta
-  help \
-  # Setup
-  setup-hooks setup-uv export-reqs uv-export \
-  # Lint / Type Check
-  ruff-format ruff-fix yamlfmt pyright pre-commit \
-  # Tests
-  unit-local integration-local \
-  # Security / CI linters
-  pip-audit semgrep-local actionlint \
-  # CI helpers and Git
-  uv-sync-test pre-push
+# Declare phony targets (grouped for readability)
+# Meta
+.PHONY: help
+# Setup
+.PHONY: setup-hooks setup-uv export-reqs uv-export
+# Lint / Type Check
+.PHONY: ruff-format ruff-fix yamlfmt pyright pre-commit
+# Tests
+.PHONY: unit-local integration-local
+# Security / CI linters
+.PHONY: pip-audit semgrep-local actionlint
+# CI helpers and Git
+.PHONY: uv-sync-test pre-push
 
 # Use bash with strict flags for recipes
 SHELL := bash
@@ -20,31 +20,31 @@ SHELL := bash
 LOG_DIR := logs
 
 help:
-    @echo "Available targets:"
-    @echo "  -- Setup --"
-    @echo "  setup-hooks        - Configure Git hooks path"
-    @echo "  setup-uv           - Create venv and sync dev/test via uv"
-    @echo "  export-reqs        - Export requirements.txt from uv.lock"
-    @echo ""
-    @echo "  -- Lint & Type Check --"
-    @echo "  ruff-format        - Auto-format code with Ruff"
-    @echo "  ruff-fix           - Run Ruff lint with autofix"
-    @echo "  yamlfmt            - Validate YAML formatting via pre-commit"
-    @echo "  pyright            - Run Pyright type checking"
-    @echo "  pre-commit         - Run all pre-commit hooks on all files"
-    @echo ""
-    @echo "  -- Tests --"
-    @echo "  unit-local         - Run unit tests (local) and write reports"
-    @echo "  integration-local  - Run integration tests (uv preferred)"
-    @echo ""
-    @echo "  -- Security / CI linters --"
-    @echo "  pip-audit          - Export from uv.lock and audit prod/dev+test deps"
-    @echo "  semgrep-local      - Run Semgrep locally via uvx (no metrics)"
-    @echo "  actionlint         - Lint GitHub workflows using actionlint in Docker"
-    @echo ""
-    @echo "  -- CI helpers & Git --"
-    @echo "  uv-sync-test       - uv sync test group (frozen) + pip check"
-    @echo "  pre-push           - Run pre-push checks with all SKIP=0"
+	@echo "Available targets:"
+	@echo "  -- Setup --"
+	@echo "  setup-hooks        - Configure Git hooks path"
+	@echo "  setup-uv           - Create venv and sync dev/test via uv"
+	@echo "  export-reqs        - Export requirements.txt from uv.lock"
+	@echo ""
+	@echo "  -- Lint & Type Check --"
+	@echo "  ruff-format        - Auto-format code with Ruff"
+	@echo "  ruff-fix           - Run Ruff lint with autofix"
+	@echo "  yamlfmt            - Validate YAML formatting via pre-commit"
+	@echo "  pyright            - Run Pyright type checking"
+	@echo "  pre-commit         - Run all pre-commit hooks on all files"
+	@echo ""
+	@echo "  -- Tests --"
+	@echo "  unit-local         - Run unit tests (local) and write reports"
+	@echo "  integration-local  - Run integration tests (uv preferred)"
+	@echo ""
+	@echo "  -- Security / CI linters --"
+	@echo "  pip-audit          - Export from uv.lock and audit prod/dev+test deps"
+	@echo "  semgrep-local      - Run Semgrep locally via uvx (no metrics)"
+	@echo "  actionlint         - Lint GitHub workflows using actionlint in Docker"
+	@echo ""
+	@echo "  -- CI helpers & Git --"
+	@echo "  uv-sync-test       - uv sync test group (frozen) + pip check"
+	@echo "  pre-push           - Run pre-push checks with all SKIP=0"
 
 setup-hooks:
 	@echo "Configuring Git hooks path..."
@@ -66,8 +66,8 @@ integration-local:
 
 # Export a pip-compatible requirements.txt from uv.lock
 export-reqs:
-    @echo ">> Exporting requirements.txt from uv.lock (no dev/test groups)"
-    @uv export --group dev --group test --format requirements-txt > requirements.txt
+	@echo ">> Exporting requirements.txt from uv.lock (no dev/test groups)"
+	@uv export --group dev --group test --format requirements-txt > requirements.txt
 
 # --- CI helper targets (used by workflows) -----------------------------------
 
