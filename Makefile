@@ -103,7 +103,8 @@ pip-audit:
 	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit -r requirements-dev-test-ci.txt
 
 yamlfmt:
-	uv sync --group dev --frozen
+	# Ensure dev + test groups are present so later test steps still work
+	uv sync --group dev --group test --frozen
 	uv run pre-commit run yamlfmt -a
 
 # Ruff targets (use uv-run to avoid global installs)
@@ -123,7 +124,8 @@ ruff-fix:
 
 # Run full pre-commit suite (dev deps required)
 pre-commit:
-	uv sync --group dev --frozen
+	# Keep test deps installed to avoid breaking local test runs after this target
+	uv sync --group dev --group test --frozen
 	uv run pre-commit run --all-files
 
 # Run the same checks as the Git pre-push hook, forcing all SKIP flags to 0
