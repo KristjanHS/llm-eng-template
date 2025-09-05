@@ -27,8 +27,8 @@ Template repo for LLM experimentation
 ## AI Coding Agent Configs
 
 - Gemini: `gemini.md` quickstart; settings in `.gemini/config.yaml` and `.gemini/settings.json` for Gemini CLI and Gemini Code Assist.
-- Codex CLI: `.codex/config.yaml` central config and `AGENTS.md` operational rules and guardrails for agents in this repo.
-- Cursor: `.cursor/modes.json`, `.cursor/mcp.json`, and `.cursor/rules/*.mdc` to guide Cursor behavior; `.cursorignore` for noise filtering.
+- Codex CLI: `.codex/` (use these configs in `~/.codex/`)  and `AGENTS.md` operational rules and guardrails for agents in this repo.
+- Cursor: `.cursor/` and `.cursor/rules/*.mdc` to guide Cursor behavior; `.cursorignore` for noise filtering.
 - Shared docs: `docs/` contains agent-focused references like `AI_instructions.md`, `CODEX_RULES.md`, and `testing_approach.md`.
 
 ---
