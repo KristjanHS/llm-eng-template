@@ -20,7 +20,6 @@ Template repo for LLM experimentation
 
 # Fallback to pip/venv: 
 - Generate requirements.txt based on uv.lock: `make export-reqs`
-- Install dev/test toolchain with pip (no extra files): `make pip-dev-install`
 
 ---
 

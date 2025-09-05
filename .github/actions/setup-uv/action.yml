@@ -1,0 +1,52 @@
+name: "Setup Python + uv (cached)"
+description: "Sets up Python, configures uv with cache, and exports env vars for subsequent steps"
+
+inputs:
+  python-version:
+    description: "Python version to install"
+    required: false
+    default: "3.12"
+  project-environment:
+    description: "uv project environment path"
+    required: false
+    default: ".venv-ci"
+  cache-local-path:
+    description: "uv cache directory"
+    required: false
+    default: "${{ github.workspace }}/.uv-cache"
+  link-mode:
+    description: "uv link mode (e.g., copy)"
+    required: false
+    default: "copy"
+  cache-dependency-glob:
+    description: "Dependency files to hash for uv cache"
+    required: false
+    default: |
+      uv.lock
+      pyproject.toml
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv (with cache)
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: ${{ inputs.cache-dependency-glob }}
+        cache-local-path: ${{ inputs.cache-local-path }}
+
+    - name: Export uv environment variables
+      shell: bash
+      env:
+        INPUT_LINK_MODE: ${{ inputs.link-mode }}
+        INPUT_CACHE_PATH: ${{ inputs.cache-local-path }}
+        INPUT_PROJECT_ENV: ${{ inputs.project-environment }}
+      run: |
+        echo "UV_LINK_MODE=$INPUT_LINK_MODE" >> "$GITHUB_ENV"
+        echo "UV_CACHE_DIR=$INPUT_CACHE_PATH" >> "$GITHUB_ENV"
+        echo "UV_PROJECT_ENVIRONMENT=$INPUT_PROJECT_ENV" >> "$GITHUB_ENV"

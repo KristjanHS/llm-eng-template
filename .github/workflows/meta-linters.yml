@@ -43,12 +43,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Sync dev tools (pre-commit)
-        run: uv sync --group dev
-      - name: Run yamlfmt via pre-commit
-        run: uv run pre-commit run yamlfmt -a
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
+      - name: Yamlfmt via Makefile
+        run: make yamlfmt
   hadolint:
     name: Hadolint (Dockerfiles)
     if: ${{ github.actor != 'nektos/act' }}

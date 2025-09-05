@@ -21,6 +21,11 @@ enable_debug_trace "$LOG_FILE"
 
 log INFO "Starting pre-push checks" | tee -a "$LOG_FILE"
 
+# Prefer a repo-local uv cache to avoid permission issues
+export UV_LINK_MODE=copy
+export UV_CACHE_DIR="$(git rev-parse --show-toplevel)/.uv-cache-hooks"
+mkdir -p "$UV_CACHE_DIR"
+
 # Detect if 'act' is available; we'll use native tools where possible and only run act-based steps when available
 if command -v act >/dev/null 2>&1; then
   # Verify Docker is available since act requires it
@@ -59,77 +64,63 @@ if [[ "$SKIP_TESTS" == "1" ]]; then
   log INFO "SKIP_TESTS=1 — tests will be skipped" | tee -a "$LOG_FILE"
 fi
 
-# Run ruff (format check + lint) natively from the project venv
+## Ruff via Makefile (format + autofix)
 if [[ "$SKIP_LINT" != "1" ]]; then
-  if [[ -x ".venv/bin/ruff" ]]; then
-    log INFO "Running ruff format --check …" | tee -a "$LOG_FILE"
-    .venv/bin/ruff format --check . 2>&1 | sed 's/^/[ruff] /' | tee -a "$LOG_FILE"
-    log INFO "Running ruff check …" | tee -a "$LOG_FILE"
-    .venv/bin/ruff check . 2>&1 | sed 's/^/[ruff] /' | tee -a "$LOG_FILE"
+  if command -v make >/dev/null 2>&1; then
+    log INFO "Running ruff format (make ruff-format) …" | tee -a "$LOG_FILE"
+    make ruff-format 2>&1 | sed 's/^/[ruff] /' | tee -a "$LOG_FILE"
+    log INFO "Running ruff autofix (make ruff-fix) …" | tee -a "$LOG_FILE"
+    make ruff-fix 2>&1 | sed 's/^/[ruff] /' | tee -a "$LOG_FILE"
   else
-    log WARN "'.venv/bin/ruff' not found. Skipping ruff checks. Ensure dev deps are installed: 'uv sync --group dev --group test'" | tee -a "$LOG_FILE"
+    log WARN "'make' not found. Skipping ruff checks." | tee -a "$LOG_FILE"
   fi
 else
   log INFO "Skipping ruff due to SKIP_LINT=1" | tee -a "$LOG_FILE"
 fi
 
-# Run yamlfmt via pre-commit (avoids requiring system yamlfmt)
+## Yamlfmt via Makefile target (uses uv + pre-commit under the hood)
 if [[ "$SKIP_LINT" != "1" ]]; then
-  if [[ -x ".venv/bin/pre-commit" ]]; then
-    log INFO "Running yamlfmt via pre-commit …" | tee -a "$LOG_FILE"
-    .venv/bin/pre-commit run yamlfmt -a 2>&1 | sed 's/^/[yamlfmt] /' | tee -a "$LOG_FILE" || true
-  elif command -v pre-commit >/dev/null 2>&1; then
-    log INFO "Running yamlfmt via pre-commit (system) …" | tee -a "$LOG_FILE"
-    pre-commit run yamlfmt -a 2>&1 | sed 's/^/[yamlfmt] /' | tee -a "$LOG_FILE" || true
+  if command -v make >/dev/null 2>&1; then
+    log INFO "Running yamlfmt (make yamlfmt) …" | tee -a "$LOG_FILE"
+    make yamlfmt 2>&1 | sed 's/^/[yamlfmt] /' | tee -a "$LOG_FILE" || true
   else
-    log WARN "'pre-commit' not found. Skipping yamlfmt check. Install dev deps or run 'uv run pre-commit run yamlfmt -a'" | tee -a "$LOG_FILE"
+    log WARN "'make' not found. Skipping yamlfmt." | tee -a "$LOG_FILE"
   fi
 else
   log INFO "Skipping yamlfmt due to SKIP_LINT=1" | tee -a "$LOG_FILE"
 fi
 
-# Run pyright (type checking) natively from the project venv
+## Pyright via Makefile target (uv run pyright)
 if [[ "$SKIP_PYRIGHT" != "1" ]]; then
-  if [[ -x ".venv/bin/pyright" ]]; then
-    log INFO "Running pyright (native) …" | tee -a "$LOG_FILE"
-    .venv/bin/pyright 2>&1 | sed 's/^/[pyright] /' | tee -a "$LOG_FILE"
+  if command -v make >/dev/null 2>&1; then
+    log INFO "Running pyright (make pyright) …" | tee -a "$LOG_FILE"
+    make pyright 2>&1 | sed 's/^/[pyright] /' | tee -a "$LOG_FILE"
   else
-    log WARN "'.venv/bin/pyright' not found. Skipping type checks. Install pyright in the venv (e.g., add to dev deps)." | tee -a "$LOG_FILE"
+    log WARN "'make' not found. Skipping pyright." | tee -a "$LOG_FILE"
   fi
 else
   log INFO "Skipping pyright due to SKIP_PYRIGHT=1" | tee -a "$LOG_FILE"
 fi
 
-# Run fast tests (keep via act for parity when available)
-if [[ "$SKIP_TESTS" == "1" ]]; then
-  log INFO "Skipping tests due to SKIP_TESTS=1" | tee -a "$LOG_FILE"
+## Unit tests via Makefile (uv run pytest for unit tests)
+if [[ "$SKIP_TESTS" != "1" ]]; then
+  if command -v make >/dev/null 2>&1; then
+    log INFO "Running unit tests (make unit-local) …" | tee -a "$LOG_FILE"
+    make unit-local 2>&1 | tee -a "$LOG_FILE"
+  else
+    log WARN "'make' not found. Skipping unit tests." | tee -a "$LOG_FILE"
+  fi
 else
-    if [[ "$ACT_AVAILABLE" == "1" ]]; then
-      log INFO "Running unit_tests via act (pull_request) …" | tee -a "$LOG_FILE"
-      act pull_request -j unit_tests --pull=false --rm --log-prefix-job-id 2>&1 | tee -a "$LOG_FILE"
-    else
-      # Native fast path for quick feedback when act isn't available
-      if [[ -x ".venv/bin/python" ]]; then
-        log INFO "Running native unit tests: pytest tests/unit --maxfail=1 -q --no-cov …" | tee -a "$LOG_FILE"
-        # Disable coverage for the fast native unit run to avoid
-        # noisy 'No data was collected' warnings when backend code
-        # isn't exercised in unit-only scope. Full coverage still
-        # runs in CI and when invoking broader suites.
-        .venv/bin/python -m pytest tests/unit --maxfail=1 -q --no-cov 2>&1 | tee -a "$LOG_FILE"
-      else
-        log WARN "'.venv/bin/python' not found; cannot run native unit tests." | tee -a "$LOG_FILE"
-      fi
-    fi
+  log INFO "Skipping tests due to SKIP_TESTS=1" | tee -a "$LOG_FILE"
 fi
 
-# Run local Semgrep via pipx (isolated) unless skipped
+## Semgrep via Makefile (uvx semgrep ci)
 if [[ "$SKIP_LOCAL_SEC_SCANS" != "1" ]]; then
-  if [[ "$ACT_AVAILABLE" == "1" ]]; then
-    log INFO "Running Semgrep via act …" | tee -a "$LOG_FILE"
-    act workflow_dispatch -W .github/workflows/semgrep.yml --pull=false --rm --log-prefix-job-id 2>&1 | tee -a "$LOG_FILE" || true
+  if command -v make >/dev/null 2>&1; then
+    log INFO "Running Semgrep (make semgrep-local) …" | tee -a "$LOG_FILE"
+    make semgrep-local 2>&1 | tee -a "$LOG_FILE" || true
   else
-    log INFO "Running Semgrep (local) via pipx …" | tee -a "$LOG_FILE"
-    bash "$SCRIPT_DIR/semgrep_local.sh" 2>&1 | tee -a "$LOG_FILE" || true
+    log WARN "'make' not found. Skipping Semgrep." | tee -a "$LOG_FILE"
   fi
 else
   log INFO "Skipping Semgrep due to SKIP_LOCAL_SEC_SCANS=1" | tee -a "$LOG_FILE"
