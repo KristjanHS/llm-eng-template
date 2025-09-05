@@ -44,6 +44,25 @@ Template repo for LLM experimentation
 - Tests & coverage: `tests/unit`, `tests/integration`, `tests/e2e`. Fast path example: `.venv/bin/python -m pytest tests/unit -q`. Coverage HTML: `reports/coverage`.
 - Logging: App logging in `backend/config.py` (level via `LOG_LEVEL`, Rich when TTY; optional file rotation via `APP_LOG_DIR`). Script logging helpers in `scripts/common.sh`. Unit tests cover both.
 
+---
+
+**CI/Act Environment Alignment**
+- **Problem:** When running local CI with `act --bind`, the workspace is your real repo. The default checkout clean can delete untracked files like `.env`/`.venv`. In CI we also used a different venv name (`.venv-ci`) while Pyright’s config pointed at `.venv`, leading to missing imports in CI (e.g., `dotenv`, `rich`).
+- **Current Solution:**
+  - **Single Pyright config:** `pyrightconfig.json` no longer sets `venvPath`/`venv`; Makefile passes `--pythonpath` so Pyright analyzes against the active interpreter.
+  - **Makefile honors CI env:** Targets (`pyright`, `unit-local`, `ruff-format`, `ruff-fix`) prefer `uv run` when `UV_PROJECT_ENVIRONMENT` is set (CI uses `.venv-ci`), otherwise use local `.venv`.
+  - **Safe checkout under act:** Workflows set `clean: false` for `actions/checkout` so `--bind` doesn’t remove local files.
+  - Result: Consistent type checking and tests across local, CI, and act without hard-coding venv names into Pyright.
+- **Where to look:**
+  - `Makefile` targets listed above; interpreter selection and `--pythonpath` wiring.
+  - `.github/workflows/python-lint-test.yml` sets `UV_PROJECT_ENVIRONMENT: .venv-ci`.
+- **Future Simplifications (planned to revisit):**
+  - Standardize on `.venv` in CI and remove `UV_PROJECT_ENVIRONMENT`.
+  - Always invoke tools via `uv run`/`uvx` (no direct `.venv/bin/...`).
+  - Avoid `act --bind` or use a separate workspace to protect local `.env`/`.venv`.
+  - Use a symlink `.venv -> .venv-ci` only inside CI containers if alignment is needed.
+
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.

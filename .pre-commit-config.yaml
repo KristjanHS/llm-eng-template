@@ -17,6 +17,12 @@ repos:
       - id: pyright
         name: "Pyright - Static type checking"
         description: "Static type checking for Python code"
+        # Ensure pyright analyzes against the project venv's interpreter
+        args:
+          - --pythonpath
+          - .venv/bin/python
+          - --project
+          - pyrightconfig.json
         files: ^backend/.*\.py$
 
   - repo: https://github.com/google/yamlfmt
