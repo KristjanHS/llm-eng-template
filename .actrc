@@ -8,6 +8,13 @@
 # Auto-cleanup containers and volumes after each run to prevent accumulation
 --rm
 
+--actor=nektos/act
+
+--container-options "--volume=${HOME}/.cache/uv:/uv-cache"
+--env UV_CACHE_DIR=/uv-cache
+
 # make the cache persistent and visible to act across runs
---cache-server-path=~/.cache/act/caches
---action-cache-path=~/.cache/act/actions
+#--cache-server-path=~/.cache/act/caches
+#--action-cache-path=~/.cache/act/actions
+# Tell Act to reuse downloaded actions
+#--action-offline-mode

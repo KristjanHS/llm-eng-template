@@ -5,12 +5,12 @@ runs:
   using: "composite"
   steps:
     - name: Setup Python 3.12
+      if: ${{ always() && env.ACT }}
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
 
-    - name: Install uv (for GitHub CI)
-      if: ${{ github.actor != 'nektos/act' }}
+    - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
@@ -19,21 +19,10 @@ runs:
           pyproject.toml
         cache-local-path: "${{ github.workspace }}/.uv-cache"
 
-    - name: Install uv (for local CI Act cli - default uv cache)
-      if: ${{ github.actor == 'nektos/act' }}
-      uses: astral-sh/setup-uv@v6
-      with:
-        enable-cache: true
-        prune-cache: false
-        cache-dependency-glob: |
-          uv.lock
-          pyproject.toml
-
     - name: setup-uv notice (act only)
-      if: ${{ github.actor == 'nektos/act' }}
+      if: ${{ always() && env.ACT }}
       shell: bash
       run: |
-        echo "::notice::[setup-uv] Detected nektos/act runner. Using default uv cache (e.g., $HOME/.cache/uv).";
         echo "::group::[setup-uv] Tool versions";
         python --version || true;
         uv --version || true;
