@@ -4,10 +4,10 @@
 
 -P ubuntu-latest=catthehacker/ubuntu:act-latest
 -P ubuntu-22.04=catthehacker/ubuntu:act-22.04
--P ubuntu-20.04=catthehacker/ubuntu:act-20.04
 
 # Auto-cleanup containers and volumes after each run to prevent accumulation
 --rm
 
-# --bind tells act to mount your working directory into the job container instead of copying it, so .uv-cache/ will persist on your host after the job exits.
---bind
+# make the cache persistent and visible to act across runs
+--cache-server-path=~/.cache/act/caches
+--action-cache-path=~/.cache/act/actions

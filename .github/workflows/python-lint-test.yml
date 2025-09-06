@@ -21,15 +21,7 @@ on:
   schedule:
     - cron: "0 2 * * 0" # Weekly on Sunday at 2 AM for slow tests
 
-env:
-  # Default to CPU-only PyTorch wheels for smaller images and reliable installs
-  PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
-  # Enforce teardown of docker services in CI to avoid leftovers
-  TEARDOWN_DOCKER: "1"
-  # Prefer copy to avoid hardlink warnings on some runners/filesystems
-  UV_LINK_MODE: copy
-  UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
-  UV_PROJECT_ENVIRONMENT: .venv-ci
+
 
 concurrency:
   group: ci-${{ github.ref }}
