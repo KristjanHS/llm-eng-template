@@ -46,9 +46,6 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - name: env for act only
-        if: ${{ github.actor != 'nektos/act' }}
-        run: echo "UV_CACHE_DIR=/uv-cache" >> $GITHUB_ENV
       - uses: actions/checkout@v4
         with:
           persist-credentials: false # ⬅️ do not store token in git config
@@ -56,7 +53,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # Install uv locally under act (no JS action, so no Node 20 needed)
+      - name: Install uv (act workaround)
+        if: ${{ github.actor == 'nektos/act' }}
+        run: |
+          echo "UV_CACHE_DIR=/uv-cache" >> $GITHUB_ENV
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      # Normal path on real GitHub runners
       - name: Install uv
+        if: ${{ github.actor != 'nektos/act' }}
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
@@ -64,7 +70,9 @@ jobs:
             uv.lock
             pyproject.toml
       - name: Sync test env + check
-        run: uv sync --group test --frozen uv pip check
+        run: |
+          uv sync --group test --frozen
+          uv pip check
       - name: Run unit tests (Makefile)
         run: make unit-local
       # Keep the cache small in CI (safe to no-op locally).
