@@ -81,9 +81,7 @@ uv-sync-test:
 # New canonical unit test target
 unit-local:
 	mkdir -p reports
-	@if [ -n "$${UV_PROJECT_ENVIRONMENT-}" ] && [ "$${UV_PROJECT_ENVIRONMENT-}" != ".venv" ]; then \
-		uv run -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml ${PYTEST_ARGS}; \
-	elif [ -x .venv/bin/python ]; then \
+	@if [ -x .venv/bin/python ]; then \
 		.venv/bin/python -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml ${PYTEST_ARGS}; \
 	else \
 		uv run -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml ${PYTEST_ARGS}; \
@@ -91,18 +89,16 @@ unit-local:
 
 
 pyright:
-	@# Determine interpreter path: prefer UV_PROJECT_ENVIRONMENT, then .venv, then system python
+	@# Determine interpreter path: prefer .venv, then system python
 		@PY_INTERP=""; \
-		if [ -n "$${UV_PROJECT_ENVIRONMENT-}" ]; then \
-			PY_INTERP="$${UV_PROJECT_ENVIRONMENT-}/bin/python"; \
-	elif [ -x .venv/bin/python ]; then \
+		if [ -x .venv/bin/python ]; then \
 		PY_INTERP=".venv/bin/python"; \
 	elif command -v python3 >/dev/null 2>&1; then \
 		PY_INTERP=$$(command -v python3); \
 	else \
 		PY_INTERP=$$(command -v python); \
 	fi; \
-		if [ -x .venv/bin/pyright ] && { [ -z "$${UV_PROJECT_ENVIRONMENT-}" ] || [ "$${UV_PROJECT_ENVIRONMENT-}" = ".venv" ]; }; then \
+		if [ -x .venv/bin/pyright ]; then \
 		.venv/bin/pyright --pythonpath "$$PY_INTERP" --project $(PYRIGHT_CONFIG); \
 	else \
 		uvx pyright --pythonpath "$$PY_INTERP" --project $(PYRIGHT_CONFIG); \
@@ -125,18 +121,14 @@ yamlfmt:
 
 # Ruff targets (use uv-run to avoid global installs)
 ruff-format:
-	@if [ -n "$${UV_PROJECT_ENVIRONMENT-}" ] && [ "$${UV_PROJECT_ENVIRONMENT-}" != ".venv" ]; then \
-		uv run ruff format .; \
-	elif [ -x .venv/bin/ruff ]; then \
+	@if [ -x .venv/bin/ruff ]; then \
 		.venv/bin/ruff format .; \
 	else \
 		uv run ruff format .; \
 	fi
 
 ruff-fix:
-	@if [ -n "$${UV_PROJECT_ENVIRONMENT-}" ] && [ "$${UV_PROJECT_ENVIRONMENT-}" != ".venv" ]; then \
-		uv run ruff check --fix .; \
-	elif [ -x .venv/bin/ruff ]; then \
+	@if [ -x .venv/bin/ruff ]; then \
 		.venv/bin/ruff check --fix .; \
 	else \
 		uv run ruff check --fix .; \

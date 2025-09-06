@@ -28,3 +28,17 @@ runs:
         cache-dependency-glob: |
           uv.lock
           pyproject.toml
+
+    - name: setup-uv notice (act only)
+      if: ${{ github.actor == 'nektos/act' }}
+      shell: bash
+      run: |
+        echo "::notice::[setup-uv] Detected nektos/act runner. Using default uv cache (e.g., $HOME/.cache/uv).";
+        echo "::group::[setup-uv] Tool versions";
+        python --version || true;
+        uv --version || true;
+        echo "::endgroup::";
+        echo "::group::[setup-uv] Environment";
+        echo "HOME=$HOME";
+        echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}";
+        echo "::endgroup::";
