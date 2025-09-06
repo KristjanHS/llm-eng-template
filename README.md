@@ -44,6 +44,20 @@ Template repo for LLM experimentation
 - Tests & coverage: `tests/unit`, `tests/integration`, `tests/e2e`. Fast path example: `.venv/bin/python -m pytest tests/unit -q`. Coverage HTML: `reports/coverage`.
 - Logging: App logging in `backend/config.py` (level via `LOG_LEVEL`, Rich when TTY; optional file rotation via `APP_LOG_DIR`). Script logging helpers in `scripts/common.sh`. Unit tests cover both.
 
+---
+
+**CI/Act Environment Alignment**
+- **Problem (historical):** Using a separate venv name (like `.venv-ci`) under act could drift from tools expecting `.venv`, leading to missing imports (e.g., `dotenv`, `rich`).
+- **Current Solution:**
+  - **Single Pyright config:** `pyrightconfig.json` no longer sets `venvPath`/`venv`; Makefile passes `--pythonpath` so Pyright analyzes against the active interpreter.
+  - **Standardize on uv defaults:** We no longer set `UV_PROJECT_ENVIRONMENT`; uv creates/uses the in-project `.venv` by default.
+  - **Safe checkout under act:** Workflows set `clean: false` for `actions/checkout` so `--bind` doesn’t remove local files.
+  - Result: Consistent type checking and tests across local, CI, and act without hard-coding venv names into Pyright.
+- **Where to look:**
+  - `Makefile` targets listed above; interpreter selection and `--pythonpath` wiring.
+  - `.github/workflows/python-lint-test.yml` environment no longer forces a venv name.
+
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.

@@ -12,11 +12,17 @@ repos:
         description: "Reformat all files according to the rules in pyproject.toml"
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.404
+    rev: v1.1.405
     hooks:
       - id: pyright
         name: "Pyright - Static type checking"
         description: "Static type checking for Python code"
+        # Ensure pyright analyzes against the project venv's interpreter
+        args:
+          - --pythonpath
+          - .venv/bin/python
+          - --project
+          - pyrightconfig.json
         files: ^backend/.*\.py$
 
   - repo: https://github.com/google/yamlfmt

@@ -32,6 +32,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          clean: false # avoid deleting untracked files under act --bind
           fetch-depth: 2
 
       - name: Semgrep scan
@@ -93,6 +94,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          clean: false # avoid deleting untracked files under act --bind
           fetch-depth: 0
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv

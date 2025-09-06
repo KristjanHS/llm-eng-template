@@ -10,6 +10,10 @@ source "$(git rev-parse --show-toplevel)/scripts/common.sh"
 script_name="pre-commit"
 LOG_FILE=$(init_script_logging "$script_name")
 enable_error_trap "$LOG_FILE" "$script_name"
+enable_debug_trace "$LOG_FILE"
+
+# Duplicate all subsequent stdout/stderr to both console and log file without using tee
+exec > >(while IFS= read -r line; do echo "$line"; echo "$line" >&3; done) 2>&1
 # --- End Logging ---
 
 # Ensure we are in the project root
@@ -30,8 +34,8 @@ fi
 
 # Run pre-commit on all files
 # This will run: ruff (fix + format), yamlfmt, detect-secrets, and custom secrets scan
-"$PRE_COMMIT_CMD" run --all-files 2>&1 | tee -a "$LOG_FILE"
-EXIT_CODE=${PIPESTATUS[0]}
+"$PRE_COMMIT_CMD" run --all-files 2>&1
+EXIT_CODE=$?
 
 if [ $EXIT_CODE -ne 0 ]; then
     log ERROR "❌ Pre-commit checks failed. Please fix the issues and try again."

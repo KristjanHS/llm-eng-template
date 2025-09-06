@@ -19,6 +19,9 @@ SHELL := bash
 # Stable project/session handling
 LOG_DIR := logs
 
+# Configurable pyright config path (default to repo config)
+PYRIGHT_CONFIG ?= ./pyrightconfig.json
+
 help:
 	@echo "Available targets:"
 	@echo "  -- Setup --"
@@ -86,10 +89,19 @@ unit-local:
 
 
 pyright:
-	@if [ -x .venv/bin/pyright ]; then \
-		.venv/bin/pyright --project ./pyrightconfig.json; \
+	@# Determine interpreter path: prefer .venv, then system python
+		@PY_INTERP=""; \
+		if [ -x .venv/bin/python ]; then \
+		PY_INTERP=".venv/bin/python"; \
+	elif command -v python3 >/dev/null 2>&1; then \
+		PY_INTERP=$$(command -v python3); \
 	else \
-		uvx pyright --project ./pyrightconfig.json; \
+		PY_INTERP=$$(command -v python); \
+	fi; \
+		if [ -x .venv/bin/pyright ]; then \
+		.venv/bin/pyright --pythonpath "$$PY_INTERP" --project $(PYRIGHT_CONFIG); \
+	else \
+		uvx pyright --pythonpath "$$PY_INTERP" --project $(PYRIGHT_CONFIG); \
 	fi
 
 pip-audit:

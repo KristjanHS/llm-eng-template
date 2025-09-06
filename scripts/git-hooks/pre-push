@@ -19,124 +19,93 @@ LOG_FILE=$(init_script_logging "$script_name")
 enable_error_trap "$LOG_FILE" "$script_name"
 enable_debug_trace "$LOG_FILE"
 
-log INFO "Starting pre-push checks" | tee -a "$LOG_FILE"
+# Duplicate all subsequent stdout/stderr to both console and log file without using tee
+exec > >(while IFS= read -r line; do echo "$line"; echo "$line" >&3; done) 2>&1
 
-# Prefer a repo-local uv cache to avoid permission issues
+log INFO "Starting pre-push checks"
+
+# - The local CI (Act cli) runs GitHub Actions inside Docker, often as root or another UID.
+# - uv's default global cache can become root-owned or rely on hardlinks that fail on overlay/volume FS.
+# - Use a repo-local cache and copy mode to avoid permission issues and cross-repo contamination.
 export UV_LINK_MODE=copy
 export UV_CACHE_DIR="$(git rev-parse --show-toplevel)/.uv-cache-hooks"
 mkdir -p "$UV_CACHE_DIR"
 
-# Detect if 'act' is available; we'll use native tools where possible and only run act-based steps when available
-if command -v act >/dev/null 2>&1; then
-  # Verify Docker is available since act requires it
-  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    ACT_AVAILABLE=1
-  else
-    ACT_AVAILABLE=0
-    log WARN "'act' found but Docker is unavailable. Falling back to native checks (ruff/pyright/pytest). Start Docker or set SKIP_TESTS=1 to skip tests." | tee -a "$LOG_FILE"
-  fi
-else
-  ACT_AVAILABLE=0
-  log WARN "'act' not found. Will run native checks only (ruff/pyright); skipping act-based steps. Install: https://github.com/nektos/act" | tee -a "$LOG_FILE"
-fi
-
-# Honor optional guard to skip local security scans (CodeQL/Semgrep)
 # Default to skipping heavy security scans locally for faster pushes.
-# Opt-in by setting SKIP_LOCAL_SEC_SCANS=0 when you want to run them.
 SKIP_LOCAL_SEC_SCANS=${SKIP_LOCAL_SEC_SCANS:-1}
-
-# Optional local skip toggles (developer ergonomics)
-# Default to skipping lint for faster pushes (opt-in for thorough checks)
 SKIP_LINT=${SKIP_LINT:-1}
 SKIP_PYRIGHT=${SKIP_PYRIGHT:-1}
 SKIP_TESTS=${SKIP_TESTS:-0}
 
-if [[ "$SKIP_LOCAL_SEC_SCANS" == "1" ]]; then
-  log INFO "SKIP_LOCAL_SEC_SCANS=1 — security scans will be skipped" | tee -a "$LOG_FILE"
+# Detect if 'act' and Docker are available; toggle local security scans accordingly
+if command -v act >/dev/null 2>&1; then
+  # Verify Docker is available since act requires it
+  if ! (command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1); then
+    log WARN "'act' found but Docker is unavailable. Disabling act-based steps (e.g., CodeQL)."
+    SKIP_LOCAL_SEC_SCANS=1
+  fi
+else
+  log WARN "'act' not found. Disabling act-based steps (e.g., CodeQL). Install: https://github.com/nektos/act"
+  SKIP_LOCAL_SEC_SCANS=1
 fi
-if [[ "$SKIP_LINT" == "1" ]]; then
-  log INFO "SKIP_LINT=1 — lint checks will be skipped" | tee -a "$LOG_FILE"
-fi
-if [[ "$SKIP_PYRIGHT" == "1" ]]; then
-  log INFO "SKIP_PYRIGHT=1 — type checks will be skipped" | tee -a "$LOG_FILE"
-fi
-if [[ "$SKIP_TESTS" == "1" ]]; then
-  log INFO "SKIP_TESTS=1 — tests will be skipped" | tee -a "$LOG_FILE"
+# Detect make once
+if ! command -v make >/dev/null 2>&1; then
+  log WARN "'make' not found. Skipping make-based checks (lint, pyright, tests, semgrep)."
+  SKIP_LINT=1
+  SKIP_PYRIGHT=1
+  SKIP_TESTS=1
+  SKIP_LOCAL_SEC_SCANS=1
 fi
 
 ## Ruff via Makefile (format + autofix)
 if [[ "$SKIP_LINT" != "1" ]]; then
-  if command -v make >/dev/null 2>&1; then
-    log INFO "Running ruff format (make ruff-format) …" | tee -a "$LOG_FILE"
-    make ruff-format 2>&1 | sed 's/^/[ruff] /' | tee -a "$LOG_FILE"
-    log INFO "Running ruff autofix (make ruff-fix) …" | tee -a "$LOG_FILE"
-    make ruff-fix 2>&1 | sed 's/^/[ruff] /' | tee -a "$LOG_FILE"
-  else
-    log WARN "'make' not found. Skipping ruff checks." | tee -a "$LOG_FILE"
-  fi
+    log INFO "Running ruff format (make ruff-format) …"
+    make ruff-format 2>&1 | sed 's/^/[ruff] /'
+    log INFO "Running ruff autofix (make ruff-fix) …"
+    make ruff-fix 2>&1 | sed 's/^/[ruff] /'
 else
-  log INFO "Skipping ruff due to SKIP_LINT=1" | tee -a "$LOG_FILE"
+  log INFO "Skipping ruff due to SKIP_LINT=1"
 fi
 
 ## Yamlfmt via Makefile target (uses uv + pre-commit under the hood)
 if [[ "$SKIP_LINT" != "1" ]]; then
-  if command -v make >/dev/null 2>&1; then
-    log INFO "Running yamlfmt (make yamlfmt) …" | tee -a "$LOG_FILE"
-    make yamlfmt 2>&1 | sed 's/^/[yamlfmt] /' | tee -a "$LOG_FILE" || true
-  else
-    log WARN "'make' not found. Skipping yamlfmt." | tee -a "$LOG_FILE"
-  fi
+    log INFO "Running yamlfmt (make yamlfmt) …"
+    make yamlfmt 2>&1 | sed 's/^/[yamlfmt] /' || true
 else
-  log INFO "Skipping yamlfmt due to SKIP_LINT=1" | tee -a "$LOG_FILE"
+  log INFO "Skipping yamlfmt due to SKIP_LINT=1"
 fi
 
 ## Pyright via Makefile target (uv run pyright)
 if [[ "$SKIP_PYRIGHT" != "1" ]]; then
-  if command -v make >/dev/null 2>&1; then
-    log INFO "Running pyright (make pyright) …" | tee -a "$LOG_FILE"
-    make pyright 2>&1 | sed 's/^/[pyright] /' | tee -a "$LOG_FILE"
-  else
-    log WARN "'make' not found. Skipping pyright." | tee -a "$LOG_FILE"
-  fi
+    log INFO "Running pyright (make pyright) …"
+    make pyright 2>&1 | sed 's/^/[pyright] /'
 else
-  log INFO "Skipping pyright due to SKIP_PYRIGHT=1" | tee -a "$LOG_FILE"
+  log INFO "Skipping pyright due to SKIP_PYRIGHT=1"
 fi
 
 ## Unit tests via Makefile (uv run pytest for unit tests)
 if [[ "$SKIP_TESTS" != "1" ]]; then
-  if command -v make >/dev/null 2>&1; then
-    log INFO "Running unit tests (make unit-local) …" | tee -a "$LOG_FILE"
-    make unit-local 2>&1 | tee -a "$LOG_FILE"
-  else
-    log WARN "'make' not found. Skipping unit tests." | tee -a "$LOG_FILE"
-  fi
+    log INFO "Running unit tests (make unit-local) …"
+    make unit-local 2>&1 | sed 's/^/[pytest] /'
 else
-  log INFO "Skipping tests due to SKIP_TESTS=1" | tee -a "$LOG_FILE"
+  log INFO "Skipping unit tests due to SKIP_TESTS=1"
 fi
 
 ## Semgrep via Makefile (uvx semgrep ci)
 if [[ "$SKIP_LOCAL_SEC_SCANS" != "1" ]]; then
-  if command -v make >/dev/null 2>&1; then
-    log INFO "Running Semgrep (make semgrep-local) …" | tee -a "$LOG_FILE"
-    make semgrep-local 2>&1 | tee -a "$LOG_FILE" || true
-  else
-    log WARN "'make' not found. Skipping Semgrep." | tee -a "$LOG_FILE"
-  fi
+    log INFO "Running Semgrep (make semgrep-local) …"
+    make semgrep-local 2>&1 | sed 's/^/[semgrep] /' || true
 else
-  log INFO "Skipping Semgrep due to SKIP_LOCAL_SEC_SCANS=1" | tee -a "$LOG_FILE"
+  log INFO "Skipping Semgrep due to SKIP_LOCAL_SEC_SCANS=1"
 fi
 
 # Optional: run CodeQL locally (informational)
 if [[ "$SKIP_LOCAL_SEC_SCANS" != "1" ]]; then
-  if [[ "$ACT_AVAILABLE" == "1" ]]; then
-    log INFO "Running CodeQL via act …" | tee -a "$LOG_FILE"
-    act workflow_dispatch -W .github/workflows/codeql.yml --pull=false --rm --log-prefix-job-id 2>&1 | tee -a "$LOG_FILE" || true
-  else
-    log INFO "Skipping CodeQL (act not available)." | tee -a "$LOG_FILE"
-  fi
+  log INFO "Running CodeQL via act …"
+  act workflow_dispatch -W .github/workflows/codeql.yml --pull=false --rm --log-prefix-job-id 2>&1 | sed 's/^/[codeql] /' || true
 else
-  log INFO "Skipping CodeQL due to SKIP_LOCAL_SEC_SCANS=1" | tee -a "$LOG_FILE"
+  log INFO "Skipping CodeQL due to SKIP_LOCAL_SEC_SCANS=1"
 fi
 
-log INFO "Pre-push checks complete" | tee -a "$LOG_FILE"
+log INFO "Pre-push checks complete"
 exit 0

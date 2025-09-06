@@ -11,6 +11,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          clean: false # avoid deleting untracked files under act --bind
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: Sync test env (Makefile)
