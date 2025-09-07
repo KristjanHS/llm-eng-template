@@ -24,6 +24,7 @@
 - Run pytest as a module to avoid import issues: `.venv/bin/python -m pytest ...`.
 - Never set `PYTHONPATH`.
 - For commands that might page or hide output (e.g., `git log`, `git diff`), force full output in non‑interactive logs, e.g., `bash -o pipefail -c 'git --no-pager log | cat'`.
+- Prefer Makefile targets for common checks (`make pyright`, `make ruff-fix`, `make unit-local`, `make pre-commit`).
 
 **Imports and Dependencies**
 - If `ModuleNotFoundError`: ensure editable install: `uv pip install -e .` (or `uv sync`).
@@ -51,6 +52,7 @@
 
 **Local vs CI Tools**
 - Prefer locally installed tools for speed; match CI only when parity is required.
+- For Act usage and caching details, see `docs/AI_instructions.md`.
 
 **After Edits**
 - When appropriate, run tests to catch regressions. 

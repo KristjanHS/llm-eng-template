@@ -121,7 +121,11 @@ curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
 ```
 
 ### Project Configuration
-The `.actrc` file uses optimized Docker images and automatically removes containers and volumes after each run to prevent accumulation.
+The `.actrc` file uses optimized runner images and mounts a persistent uv cache to speed up repeated runs.
+
+- Persists uv cache across runs: `--container-options "--volume=${HOME}/.cache/uv:/uv-cache"`
+- Sets `UV_CACHE_DIR=/uv-cache` and `UV_LINK_MODE=copy` for compatibility
+- Auto-cleans runner containers: `--rm`
 
 ### Usage
 ```bash
@@ -129,8 +133,7 @@ The `.actrc` file uses optimized Docker images and automatically removes contain
 act -l
 
 # Run CI locally
-# Note: ci_act.sh script not found in current structure
-# Consider using: act workflow_dispatch -W .github/workflows/python-lint-test.yml
+act workflow_dispatch -W .github/workflows/python-lint-test.yml
 
 # Run specific workflows
 act workflow_dispatch -W .github/workflows/codeql.yml
@@ -139,6 +142,7 @@ act workflow_dispatch -W .github/workflows/semgrep.yml
 # Run specific jobs
 act workflow_dispatch -j lint
 act workflow_dispatch -j pyright
+act workflow_dispatch -j fast_tests
 ```
 
 ## Pre-commit Framework

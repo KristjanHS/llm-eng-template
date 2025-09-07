@@ -48,14 +48,6 @@ else
   log WARN "'act' not found. Disabling act-based steps (e.g., CodeQL). Install: https://github.com/nektos/act"
   SKIP_LOCAL_SEC_SCANS=1
 fi
-# Detect make once
-if ! command -v make >/dev/null 2>&1; then
-  log WARN "'make' not found. Skipping make-based checks (lint, pyright, tests, semgrep)."
-  SKIP_LINT=1
-  SKIP_PYRIGHT=1
-  SKIP_TESTS=1
-  SKIP_LOCAL_SEC_SCANS=1
-fi
 
 ## Ruff via Makefile (format + autofix)
 if [[ "$SKIP_LINT" != "1" ]]; then
@@ -83,10 +75,20 @@ else
   log INFO "Skipping pyright due to SKIP_PYRIGHT=1"
 fi
 
-## Unit tests via Makefile (uv run pytest for unit tests)
+## Unit tests: prefer running GA job via act; fallback to local make
 if [[ "$SKIP_TESTS" != "1" ]]; then
-    log INFO "Running unit tests (make unit-local) …"
-    make unit-local 2>&1 | sed 's/^/[pytest] /'
+  if command -v act >/dev/null 2>&1 \
+     && command -v docker >/dev/null 2>&1 \
+     && docker info >/dev/null 2>&1; then
+    log INFO "Running unit tests via act (workflow: python-lint-test.yml, job: unit_tests) …"
+    # Run only the unit_tests job; do not fallback on test failures (block push instead).
+    # Fallback to local run only when act/docker are unavailable (handled by the outer condition).
+    act -W .github/workflows/python-lint-test.yml -j unit_tests \
+      --pull=false --log-prefix-job-id 2>&1 | sed 's/^/[act] /'
+  else
+    log WARN "'act' or Docker unavailable. Falling back to local tests (make unit-local)."
+    make unit-local 2>&1 | sed 's/^/[unit-local] /'
+  fi
 else
   log INFO "Skipping unit tests due to SKIP_TESTS=1"
 fi

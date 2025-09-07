@@ -106,13 +106,13 @@ pyright:
 
 pip-audit:
 	@echo ">> Exporting prod requirements from uv.lock"
-	uv export --format=requirements-txt --locked > requirements-ci.txt
+	uv export --format=requirements-txt --locked--no-emit-project > requirements-ci.txt
 	@echo ">> Exporting dev+test requirements from uv.lock"
-	uv export --format=requirements-txt --locked --group dev --group test > requirements-dev-test-ci.txt
+	uv export --format=requirements-txt --locked --group dev --group test --no-emit-project > requirements-dev-test-ci.txt
 	@echo ">> Auditing prod requirements"
-	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit -r requirements-ci.txt
+	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit --require-hashes -r requirements-ci.txt
 	@echo ">> Auditing dev+test requirements"
-	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit -r requirements-dev-test-ci.txt
+	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit --require-hashes -r requirements-dev-test-ci.txt
 
 yamlfmt:
 	# Ensure dev + test groups are present so later test steps still work
