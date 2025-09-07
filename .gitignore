@@ -8,6 +8,7 @@ bin/
 # Virtualenv
 .venv/
 .venv-ci/
+.pvenv/
 venv/
 .cu121/
 .tox/

@@ -72,12 +72,11 @@ integration-local:
 export-reqs:
 	@echo ">> Exporting requirements.txt from uv.lock (incl dev/test groups)"
 	@( \
-	  # Load .env if present so PYTORCH_EXTRA_INDEX_URL is available \
+	  uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt; \
 	  if [ -f .env ]; then set -a; . ./.env; set +a; fi; \
-	  tmpfile=$$(mktemp); \
-	  trap 'rm -f "$$tmpfile"' EXIT; \
-	  uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > "$$tmpfile"; \
-	  { if [ -n "$${PYTORCH_EXTRA_INDEX_URL-}" ]; then echo "--extra-index-url $${PYTORCH_EXTRA_INDEX_URL}"; fi; cat "$$tmpfile"; } > requirements.txt; \
+	  if [ -n "$${PYTORCH_EXTRA_INDEX_URL-}" ]; then \
+	    sed -i "1i --extra-index-url $${PYTORCH_EXTRA_INDEX_URL}" requirements.txt; \
+	  fi; \
 	)
 
 # --- CI helper targets (used by workflows) -----------------------------------
