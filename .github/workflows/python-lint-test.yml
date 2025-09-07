@@ -94,8 +94,6 @@ jobs:
           persist-credentials: false # ⬅️ do not store token in git config
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
-      - name: Sync test env (Makefile)
-        run: make uv-sync-test
       - name: Build and start services
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
@@ -130,8 +128,6 @@ jobs:
           persist-credentials: false # ⬅️ do not store token in git config
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
-      - name: Sync test env (Makefile)
-        run: make uv-sync-test
       - name: Build and start services
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
