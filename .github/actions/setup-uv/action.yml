@@ -5,12 +5,19 @@ runs:
   using: "composite"
   steps:
     - name: Setup Python 3.12
-      if: ${{ always() && env.ACT }}
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
-
+    # Install uv locally under act
+    - name: Install uv (act workaround)
+      if: ${{ github.actor == 'nektos/act' }}
+      uses: astral-sh/setup-uv@v5
+      with:
+        cache-local-path: "/uv-cache"
+        prune-cache: false
+    # Normal uv install path on real GitHub runners
     - name: Install uv
+      if: ${{ github.actor != 'nektos/act' }}
       uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
@@ -18,16 +25,8 @@ runs:
           uv.lock
           pyproject.toml
         cache-local-path: "${{ github.workspace }}/.uv-cache"
-
-    - name: setup-uv notice (act only)
-      if: ${{ always() && env.ACT }}
+    - name: Sync test env + check
       shell: bash
       run: |
-        echo "::group::[setup-uv] Tool versions";
-        python --version || true;
-        uv --version || true;
-        echo "::endgroup::";
-        echo "::group::[setup-uv] Environment";
-        echo "HOME=$HOME";
-        echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}";
-        echo "::endgroup::";
+        uv sync --group test --frozen
+        uv pip check

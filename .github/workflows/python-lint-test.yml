@@ -29,7 +29,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false # ⬅️ do not store token in git config
-          clean: false # avoid deleting untracked files under act --bind
       - name: Ruff static analysis
         uses: astral-sh/ruff-action@v1
         with:
@@ -48,27 +47,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false # ⬅️ do not store token in git config
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      # Install uv locally under act
-      - name: Install uv (act workaround)
-        if: ${{ github.actor == 'nektos/act' }}
-        uses: astral-sh/setup-uv@v5
-        with:
-          cache-local-path: "/uv-cache"
-          prune-cache: false
-      # Normal uv install path on real GitHub runners
-      - name: Install uv
-        if: ${{ github.actor != 'nektos/act' }}
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          cache-dependency-glob: |
-            uv.lock
-            pyproject.toml
-          cache-local-path: "${{ github.workspace }}/.uv-cache"
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
       - name: Sync test env + check
         run: |
           uv sync --group test --frozen
@@ -111,8 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
-          clean: false # avoid deleting untracked files under act --bind
+          persist-credentials: false # ⬅️ do not store token in git config
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: Sync test env (Makefile)
@@ -148,8 +127,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
-          clean: false # avoid deleting untracked files under act --bind
+          persist-credentials: false # ⬅️ do not store token in git config
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: Sync test env (Makefile)
