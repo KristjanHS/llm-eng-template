@@ -4,7 +4,7 @@ description: "Sets up Python 3.12 and uv with sensible caching for GitHub CI and
 runs:
   using: "composite"
   steps:
-    - name: Setup Python 3.12
+    - name: Setup Python 3.12 (composite)
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
@@ -25,8 +25,3 @@ runs:
           uv.lock
           pyproject.toml
         cache-local-path: "${{ github.workspace }}/.uv-cache"
-    - name: Sync test env + check
-      shell: bash
-      run: |
-        uv sync --group test --frozen
-        uv pip check
