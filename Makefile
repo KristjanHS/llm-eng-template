@@ -2,7 +2,7 @@
 # Meta
 .PHONY: help
 # Setup
-.PHONY: setup-hooks setup-uv export-reqs uv-export
+.PHONY: setup-hooks setup-uv export-reqs
 # Lint / Type Check
 .PHONY: ruff-format ruff-fix yamlfmt pyright pre-commit
 # Tests
@@ -69,10 +69,14 @@ integration-local:
 
 # Export a pip-compatible requirements.txt from uv.lock
 export-reqs:
-	@echo ">> Exporting requirements.txt from uv.lock (no dev/test groups)"
-	@uv export --group dev --group test --format requirements-txt > requirements.txt
+	@echo ">> Exporting requirements.txt from uv.lock (incl dev/test groups)"
+	uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt
 
 # --- CI helper targets (used by workflows) -----------------------------------
+
+pip-audit: export-reqs
+	@echo ">> Auditing requirements.txt"
+	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit -r requirements.txt
 
 uv-sync-test:
 	uv sync --group test --frozen
@@ -103,16 +107,6 @@ pyright:
 	else \
 		uvx pyright --pythonpath "$$PY_INTERP" --project $(PYRIGHT_CONFIG); \
 	fi
-
-pip-audit:
-	@echo ">> Exporting prod requirements from uv.lock"
-	uv export --format=requirements-txt --locked--no-emit-project > requirements-ci.txt
-	@echo ">> Exporting dev+test requirements from uv.lock"
-	uv export --format=requirements-txt --locked --group dev --group test --no-emit-project > requirements-dev-test-ci.txt
-	@echo ">> Auditing prod requirements"
-	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit --require-hashes -r requirements-ci.txt
-	@echo ">> Auditing dev+test requirements"
-	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit --require-hashes -r requirements-dev-test-ci.txt
 
 yamlfmt:
 	# Ensure dev + test groups are present so later test steps still work
