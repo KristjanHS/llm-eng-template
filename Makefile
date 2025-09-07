@@ -68,20 +68,23 @@ integration-local:
 	fi
 
 # Export a pip-compatible requirements.txt from uv.lock
+# extra-index-url is needed for torch
 export-reqs:
 	@echo ">> Exporting requirements.txt from uv.lock (incl dev/test groups)"
-	uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt
+	@( \
+	  # Load .env if present so PYTORCH_EXTRA_INDEX_URL is available \
+	  if [ -f .env ]; then set -a; . ./.env; set +a; fi; \
+	  tmpfile=$$(mktemp); \
+	  trap 'rm -f "$$tmpfile"' EXIT; \
+	  uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > "$$tmpfile"; \
+	  { if [ -n "$${PYTORCH_EXTRA_INDEX_URL-}" ]; then echo "--extra-index-url $${PYTORCH_EXTRA_INDEX_URL}"; fi; cat "$$tmpfile"; } > requirements.txt; \
+	)
 
 # --- CI helper targets (used by workflows) -----------------------------------
 
-# audit without torch - because torch is not in PYPI
 pip-audit: export-reqs
-		@echo ">> Auditing requirements.txt via temporary copy (excluding torch)"
-		@tmpfile=$$(mktemp); \
-		trap 'rm -f "$$tmpfile"' EXIT; \
-		cp requirements.txt "$$tmpfile"; \
-		sed -i '/^torch==/d' "$$tmpfile"; \
-		uvx --from pip-audit pip-audit -r "$$tmpfile"
+	@echo ">> Auditing requirements.txt"
+	uvx --from pip-audit pip-audit -r requirements.txt
 
 uv-sync-test:
 	uv sync --group test --frozen
