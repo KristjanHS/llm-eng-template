@@ -6,8 +6,9 @@ Template repo for LLM experimentation
 
 ## Prerequisites
 - uv (https://astral.sh/uv) or pip
-- Docker & Docker Compose
-- Linux/WSL2
+ - Docker & Docker Compose
+ - Linux/WSL2
+ - Optional: Act CLI for local CI runs (https://github.com/nektos/act).
 
 ---
 
@@ -20,6 +21,9 @@ Template repo for LLM experimentation
 
 # Fallback to pip/venv: 
 - Generate requirements.txt based on uv.lock: `make export-reqs`
+
+## Local CI with Act
+- Act is supported for local CI parity. See `docs/AI_instructions.md` for setup and usage.
 
 ---
 
@@ -43,6 +47,8 @@ Template repo for LLM experimentation
   - `trivy_pip-audit.yml`: pip-audit + Trivy on dep/Docker changes and schedule.
 - Tests & coverage: `tests/unit`, `tests/integration`, `tests/e2e`. Fast path example: `.venv/bin/python -m pytest tests/unit -q`. Coverage HTML: `reports/coverage`.
 - Logging: App logging in `backend/config.py` (level via `LOG_LEVEL`, Rich when TTY; optional file rotation via `APP_LOG_DIR`). Script logging helpers in `scripts/common.sh`. Unit tests cover both.
+
+ - Use Makefile targets for common checks; see `Makefile` and `docs/AI_instructions.md` for details.
 
 ---
 

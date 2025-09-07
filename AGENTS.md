@@ -23,6 +23,7 @@ explicitly overrides them.
 - Create/activate venv if missing and install deps as needed (ask before changing pinned versions).  
 - Docker is available; prefer the provided scripts to start services.  
 - Network calls to external services must be isolated behind Docker where possible.
+ - For local CI with Act, see `docs/AI_instructions.md` for configuration and usage.
 
 ## Common tasks (agents may run these automatically)  
 > Agents: prefer these exact commands and **stop on first failure**.
@@ -34,7 +35,7 @@ explicitly overrides them.
   _Coverage outputs to `reports/coverage`._
 
 - - **Pre-commit (mandatory) bash command:**  
-  `pre-commit run --all-files`
+  `uv run pre-commit run --all-files`
 
 - **If UI or logs change intentionally:** update any snapshots or expectations the tests rely on.  
   _If failing, fix the code or tests; do **not** disable checks._
@@ -42,6 +43,10 @@ explicitly overrides them.
 ## Code style & conventions  
 - Keep lines ≤120 chars. Prefer small, composable functions and explicit error handling.  
 - Add or update tests when changing behavior.
+
+## Makefile-first checks  
+- Prefer `make` targets over ad-hoc commands for parity with CI:  
+  `make pyright`, `make ruff-fix`, `make ruff-format`, `make unit-local`, `make integration-local`, `make pre-commit`, `make pre-push`.
 
 ## Safe edit policy  
 - For risky edits (schema changes, cross-module refactors), propose a plan in the Tasklist first.  
