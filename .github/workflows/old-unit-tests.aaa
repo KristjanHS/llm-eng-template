@@ -1,0 +1,93 @@
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # ⬅️ do not store token in git config
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Install uv locally under act
+      - name: Install uv (act workaround)
+        if: ${{ github.actor == 'nektos/act' }}
+        uses: astral-sh/setup-uv@v5
+        with:
+          cache-local-path: "/uv-cache"
+          prune-cache: false
+      # Normal uv install path on real GitHub runners
+      - name: Install uv
+        if: ${{ github.actor != 'nektos/act' }}
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+          cache-local-path: "${{ github.workspace }}/.uv-cache"
+
+
+  unit_tests_works:
+    name: Unit Tests works
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # ⬅️ do not store token in git config
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Install uv locally under act (no JS action, so no Node 20 needed)
+      - name: Install uv (act workaround)
+        if: ${{ github.actor == 'nektos/act' }}
+        run: |
+          echo "UV_CACHE_DIR=/uv-cache" >> $GITHUB_ENV
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      # Normal path on real GitHub runners
+      - name: Install uv
+        if: ${{ github.actor != 'nektos/act' }}
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+          cache-local-path: "${{ github.workspace }}/.uv-cache"
+      - name: Sync test env + check
+        run: |
+          uv sync --group test --frozen
+          uv pip check
+      - name: Run unit tests (Makefile)
+        run: make unit-local
+      # Keep the cache small in CI (safe to no-op locally).
+      #- name: Prune uv cache for CI
+      #  run: uv cache prune --ci
+      - name: Upload unit test reports
+        # Skip under act (local GitHub Actions emulator) because ACTIONS_RUNTIME_TOKEN is not available.
+        # On real GitHub runners, this will upload the reports/ directory as a build artifact.
+        if: ${{ github.actor != 'nektos/act' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-unit-${{ github.job }}
+          path: reports/
+
+  unit_tests_old:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # ⬅️ do not store token in git config
+      - name: Setup Python + uv (cached)
+        uses: ./.github/actions/setup-uv
+      - name: Sync test env + check
+        run: make uv-sync-test
+      - name: Run unit tests (Makefile)
+        run: make unit-local
+      - name: Upload unit test reports
+        # Skip under act (local GitHub Actions emulator) because ACTIONS_RUNTIME_TOKEN is not available.
+        # On real GitHub runners, this will upload the reports/ directory as a build artifact.
+        if: ${{ always() && github.actor != 'nektos/act' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-unit-${{ github.job }}
+          path: reports/

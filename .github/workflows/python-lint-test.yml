@@ -1,12 +1,4 @@
 name: CI
-# NOTE FOR LOCAL CI (act):
-# - The pre-push Git hook (.git/hooks/pre-push) runs these in order:
-#     act pull_request -j lint --pull=false --log-prefix-job-id
-#     act pull_request -j unit_tests --pull=false --log-prefix-job-id
-# - To run this workflow manually with act:
-#     act pull_request -j lint
-#     act pull_request -j unit_tests
-#
 # IMPORTANT: Integration and E2E tests require the full Docker stack and are excluded
 # from GitHub CI runs entirely. They only run locally via act (nektos/act) on manual
 # workflow_dispatch or scheduled runs. This prevents CI failures due to GitHub runner
@@ -20,16 +12,6 @@ on:
   workflow_dispatch: {} # Allows manual triggering for slow tests
   schedule:
     - cron: "0 2 * * 0" # Weekly on Sunday at 2 AM for slow tests
-
-env:
-  # Default to CPU-only PyTorch wheels for smaller images and reliable installs
-  PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
-  # Enforce teardown of docker services in CI to avoid leftovers
-  TEARDOWN_DOCKER: "1"
-  # Prefer copy to avoid hardlink warnings on some runners/filesystems
-  UV_LINK_MODE: copy
-  UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
-  UV_PROJECT_ENVIRONMENT: .venv-ci
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -58,7 +40,6 @@ jobs:
           version: "0.12.9"
           args: format --check .
 
-
   unit_tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -69,13 +50,18 @@ jobs:
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: Sync test env + check
-        run: make uv-sync-test
+        run: |
+          uv sync --group test --frozen
+          uv pip check
       - name: Run unit tests (Makefile)
         run: make unit-local
+      # Keep the cache small in CI (safe to no-op locally).
+      #- name: Prune uv cache for CI
+      #  run: uv cache prune --ci
       - name: Upload unit test reports
         # Skip under act (local GitHub Actions emulator) because ACTIONS_RUNTIME_TOKEN is not available.
         # On real GitHub runners, this will upload the reports/ directory as a build artifact.
-        if: ${{ always() && github.actor != 'nektos/act' }}
+        if: ${{ github.actor != 'nektos/act' }}
         uses: actions/upload-artifact@v4
         with:
           name: test-reports-unit
@@ -105,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: false # ⬅️ do not store token in git config
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: Sync test env (Makefile)
@@ -141,7 +127,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          persist-credentials: false # ⬅️ do not store token in git config
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: Sync test env (Makefile)

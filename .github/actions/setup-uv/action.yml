@@ -1,52 +1,32 @@
 name: "Setup Python + uv (cached)"
-description: "Sets up Python, configures uv with cache, and exports env vars for subsequent steps"
-
-inputs:
-  python-version:
-    description: "Python version to install"
-    required: false
-    default: "3.12"
-  project-environment:
-    description: "uv project environment path"
-    required: false
-    default: ".venv-ci"
-  cache-local-path:
-    description: "uv cache directory"
-    required: false
-    default: "${{ github.workspace }}/.uv-cache"
-  link-mode:
-    description: "uv link mode (e.g., copy)"
-    required: false
-    default: "copy"
-  cache-dependency-glob:
-    description: "Dependency files to hash for uv cache"
-    required: false
-    default: |
-      uv.lock
-      pyproject.toml
+description: "Sets up Python 3.12 and uv with sensible caching for GitHub CI and act"
 
 runs:
   using: "composite"
   steps:
-    - name: Setup Python ${{ inputs.python-version }}
+    - name: Setup Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ inputs.python-version }}
-
-    - name: Install uv (with cache)
+        python-version: "3.12"
+    # Install uv locally under act
+    - name: Install uv (act workaround)
+      if: ${{ github.actor == 'nektos/act' }}
       uses: astral-sh/setup-uv@v5
       with:
+        cache-local-path: "/uv-cache"
+        prune-cache: false
+    # Normal uv install path on real GitHub runners
+    - name: Install uv
+      if: ${{ github.actor != 'nektos/act' }}
+      uses: astral-sh/setup-uv@v6
+      with:
         enable-cache: true
-        cache-dependency-glob: ${{ inputs.cache-dependency-glob }}
-        cache-local-path: ${{ inputs.cache-local-path }}
-
-    - name: Export uv environment variables
+        cache-dependency-glob: |
+          uv.lock
+          pyproject.toml
+        cache-local-path: "${{ github.workspace }}/.uv-cache"
+    - name: Sync test env + check
       shell: bash
-      env:
-        INPUT_LINK_MODE: ${{ inputs.link-mode }}
-        INPUT_CACHE_PATH: ${{ inputs.cache-local-path }}
-        INPUT_PROJECT_ENV: ${{ inputs.project-environment }}
       run: |
-        echo "UV_LINK_MODE=$INPUT_LINK_MODE" >> "$GITHUB_ENV"
-        echo "UV_CACHE_DIR=$INPUT_CACHE_PATH" >> "$GITHUB_ENV"
-        echo "UV_PROJECT_ENVIRONMENT=$INPUT_PROJECT_ENV" >> "$GITHUB_ENV"
+        uv sync --group test --frozen
+        uv pip check

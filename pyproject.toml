@@ -29,7 +29,7 @@ torch = { index = "pytorch-cpu" }
 [dependency-groups]
 dev = [
     "bandit[toml]==1.8.6",
-    "pyright[nodejs]==1.1.404",
+    "pyright[nodejs]==1.1.405",
     "ruff==0.12.9",
     "pre-commit>=3.7,<4.0",
 ]
@@ -124,6 +124,10 @@ json_output  = "deptry_report.json"      # for CI artifacts
 python-dotenv = ["dotenv"]
 
 [tool.coverage.run]
+# Limit measured source to backend package and suppress noisy warnings when
+# xdist splits tests that don't execute any measured code in a worker.
+source = ["backend"]
+disable_warnings = ["no-data-collected"]
 data_file = "reports/coverage/.coverage"
 
 # Service health check endpoints
