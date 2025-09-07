@@ -74,9 +74,14 @@ export-reqs:
 
 # --- CI helper targets (used by workflows) -----------------------------------
 
+# audit without torch - because torch is not in PYPI
 pip-audit: export-reqs
-	@echo ">> Auditing requirements.txt"
-	PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL} uvx --from pip-audit pip-audit -r requirements.txt
+		@echo ">> Auditing requirements.txt via temporary copy (excluding torch)"
+		@tmpfile=$$(mktemp); \
+		trap 'rm -f "$$tmpfile"' EXIT; \
+		cp requirements.txt "$$tmpfile"; \
+		sed -i '/^torch==/d' "$$tmpfile"; \
+		uvx --from pip-audit pip-audit -r "$$tmpfile"
 
 uv-sync-test:
 	uv sync --group test --frozen
