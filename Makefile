@@ -78,11 +78,19 @@ export-reqs:
 
 # audits the already existing venv
 pip-audit:
-	@echo ">> Auditing local virtual environment (.venv if present)"
+	@echo ">> Auditing dependencies (prefer local .venv; fallback to requirements)"
 	@if [ -x .venv/bin/python ]; then \
-		PIPAPI_PYTHON_LOCATION=.venv/bin/python uvx --from pip-audit pip-audit --local; \
+		if .venv/bin/python -m pip --version >/dev/null 2>&1; then \
+			PIPAPI_PYTHON_LOCATION=.venv/bin/python uvx --from pip-audit pip-audit --local; \
+		else \
+			echo "No pip in .venv; exporting requirements and auditing exported deps"; \
+			$(MAKE) export-reqs; \
+			uvx --from pip-audit pip-audit -r requirements.txt; \
+		fi; \
 	else \
-		uvx --from pip-audit pip-audit --local; \
+		echo "No .venv detected; exporting requirements and auditing exported deps"; \
+		$(MAKE) export-reqs; \
+		uvx --from pip-audit pip-audit -r requirements.txt; \
 	fi
 # pip-audit: export-reqs
 # uvx --from pip-audit pip-audit -r requirements.txt

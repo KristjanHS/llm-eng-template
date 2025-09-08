@@ -6,7 +6,15 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
-# Create or reuse .venv, then sync dev+test groups
+# Ensure a .venv exists and is seeded with pip
+uv venv --seed
+
+# Fallback: if pip still missing for any reason, try ensurepip
+if ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
+  .venv/bin/python -m ensurepip --upgrade || true
+fi
+
+# Create or reuse .venv, then sync test group
 uv sync --group test
 
 # Quick sanity print
