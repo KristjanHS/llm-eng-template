@@ -28,8 +28,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
-      - name: Seed pip in .venv
-        run: uv venv --seed
+      #- name: Seed pip in .venv
+      #  run: uv venv --seed
       - name: pip-audit via Makefile
         run: make pip-audit
 
