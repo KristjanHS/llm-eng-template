@@ -251,7 +251,7 @@ threadpoolctl==3.6.0
     # via scikit-learn
 tokenizers==0.22.0
     # via transformers
-torch==2.7.1+cpu
+torch==2.8.0+cpu
     # via
     #   llm-eng-template
     #   sentence-transformers
