@@ -67,33 +67,20 @@ integration-local:
 		exit 1; \
 	fi
 
-# Export a pip-compatible requirements.txt from uv.lock
-# extra-index-url is needed for torch installation
+# Export a pip-compatible requirements.txt from uv.lock, except torch and editable project.
+# With pip, torch installation must be done separately, eg:
+#    pip install torch==1.8.0 --index-url https://download.pytorch.org/whl/cpu
+#    pip install torch==1.7.1 --index-url https://download.pytorch.org/whl/cu128
 export-reqs:
 	@echo ">> Exporting requirements.txt from uv.lock (incl dev/test groups)"
-	uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt
-	sed -i "1i --extra-index-url https://download.pytorch.org/whl/cpu" requirements.txt
+	uv export --no-hashes --group test --locked --no-emit-project --no-emit-package torch --format requirements-txt > requirements.txt
 
 # --- CI helper targets (used by workflows) -----------------------------------
 
 # audits the already existing venv
-pip-audit:
-	@echo ">> Auditing dependencies (prefer local .venv; fallback to requirements)"
-	@if [ -x .venv/bin/python ]; then \
-		if .venv/bin/python -m pip --version >/dev/null 2>&1; then \
-			PIPAPI_PYTHON_LOCATION=.venv/bin/python uvx --from pip-audit pip-audit --local; \
-		else \
-			echo "No pip in .venv; exporting requirements and auditing exported deps"; \
-			$(MAKE) export-reqs; \
-			uvx --from pip-audit pip-audit -r requirements.txt; \
-		fi; \
-	else \
-		echo "No .venv detected; exporting requirements and auditing exported deps"; \
-		$(MAKE) export-reqs; \
-		uvx --from pip-audit pip-audit -r requirements.txt; \
-	fi
-# pip-audit: export-reqs
-# uvx --from pip-audit pip-audit -r requirements.txt
+pip-audit: export-reqs
+	@echo ">> Auditing dependencies (based on requirements.txt)"
+	uvx --from pip-audit pip-audit -r requirements.txt
 
 uv-sync-test:
 	uv sync --group test --frozen
