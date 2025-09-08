@@ -8,6 +8,7 @@ bin/
 # Virtualenv
 .venv/
 .venv-ci/
+.pvenv/
 venv/
 .cu121/
 .tox/
@@ -31,6 +32,7 @@ dist/
 .cache/
 .pre-commit-cache/
 .uv-cache/
+.uv-cache-hooks/
 
 # Jupyter
 .ipynb_checkpoints/

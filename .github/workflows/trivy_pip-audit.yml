@@ -29,8 +29,6 @@ jobs:
       - name: Setup Python + uv (cached)
         uses: ./.github/actions/setup-uv
       - name: pip-audit via Makefile (prod + dev+test)
-        env:
-          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
         run: make pip-audit
 
   trivy-fs:
