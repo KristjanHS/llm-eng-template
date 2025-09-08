@@ -12,7 +12,7 @@ dependencies = [
     "rich>=13,<14",
     "ruff==0.12.9",
     "sentence-transformers==5.0.0",
-    "torch==2.7.1+cpu",
+    "torch==2.8.0+cpu",
 ]
 
 [tool.uv]
