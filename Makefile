@@ -71,21 +71,20 @@ integration-local:
 # extra-index-url is needed for torch installation
 export-reqs:
 	@echo ">> Exporting requirements.txt from uv.lock (incl dev/test groups)"
-	uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt; \
-	sed -i "1i --extra-index-url https://download.pytorch.org/whl/cpu" requirements.txt; \
-	fi;
+	uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt
+	sed -i "1i --extra-index-url https://download.pytorch.org/whl/cpu" requirements.txt
 
 # --- CI helper targets (used by workflows) -----------------------------------
 
 # audits the already existing venv
 pip-audit:
-	@echo ">> Auditing local environment (.venv if present)"
+	@echo ">> Auditing local virtual environment (.venv if present)"
 	@if [ -x .venv/bin/python ]; then \
 		PIPAPI_PYTHON_LOCATION=.venv/bin/python uvx --from pip-audit pip-audit --local; \
 	else \
 		uvx --from pip-audit pip-audit --local; \
 	fi
-# uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt; \
+# pip-audit: export-reqs
 # uvx --from pip-audit pip-audit -r requirements.txt
 
 uv-sync-test:
