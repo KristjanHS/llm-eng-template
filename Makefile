@@ -79,8 +79,12 @@ export-reqs:
 
 # audits the already existing venv
 pip-audit:
-	@echo ">> Auditing requirements.txt"
-	uvx --from pip-audit pip-audit --local
+	@echo ">> Auditing local environment (.venv if present)"
+	@if [ -x .venv/bin/python ]; then \
+		PIPAPI_PYTHON_LOCATION=.venv/bin/python uvx --from pip-audit pip-audit --local; \
+	else \
+		uvx --from pip-audit pip-audit --local; \
+	fi
 # uv export --no-hashes --group test --locked --no-emit-project --format requirements-txt > requirements.txt; \
 # uvx --from pip-audit pip-audit -r requirements.txt
 
