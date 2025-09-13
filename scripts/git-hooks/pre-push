@@ -8,7 +8,7 @@
 set -Eeuo pipefail
 
 # Source the shared config file
-# shellcheck source=../scripts/common.sh
+# shellcheck source=../common.sh
 source "$(git rev-parse --show-toplevel)/scripts/common.sh"
 
 # Provide both lowercase and uppercase names for compatibility with helper scripts
@@ -84,10 +84,10 @@ if [[ "$SKIP_TESTS" != "1" ]]; then
     # Run only the unit_tests job; do not fallback on test failures (block push instead).
     # Fallback to local run only when act/docker are unavailable (handled by the outer condition).
     act -W .github/workflows/python-lint-test.yml -j unit_tests \
-      --pull=false --log-prefix-job-id 2>&1 | sed 's/^/[act] /'
+      --pull=false --log-prefix-job-id 2>&1
   else
-    log WARN "'act' or Docker unavailable. Falling back to local tests (make unit-local)."
-    make unit-local 2>&1 | sed 's/^/[unit-local] /'
+    log WARN "'act' or Docker unavailable. Falling back to local tests (make unit)."
+    make unit 2>&1 | sed 's/^/[unit] /'
   fi
 else
   log INFO "Skipping unit tests due to SKIP_TESTS=1"
@@ -95,8 +95,8 @@ fi
 
 ## Semgrep via Makefile (uvx semgrep ci)
 if [[ "$SKIP_LOCAL_SEC_SCANS" != "1" ]]; then
-    log INFO "Running Semgrep (make semgrep-local) …"
-    make semgrep-local 2>&1 | sed 's/^/[semgrep] /' || true
+    log INFO "Running Semgrep (make semgrep) …"
+    make semgrep 2>&1 | sed 's/^/[semgrep] /' || true
 else
   log INFO "Skipping Semgrep due to SKIP_LOCAL_SEC_SCANS=1"
 fi

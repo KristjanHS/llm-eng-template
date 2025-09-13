@@ -29,19 +29,19 @@ services:
       context: ..
       dockerfile: docker/app.Dockerfile
       target: runtime
-
-    ports:
-      - "8501:8501"
     volumes:
       - ../backend:/app/backend # Live backend code
       - ../frontend:/app/frontend # Live frontend code
       - ../logs:/app/logs # Live log access
       - ../tests:/app/tests # Mount tests for in-container testing
+      - ../scripts:/app/scripts # Shell helpers used by tests
+      - ../docker:/app/docker # Compose file presence checked by scripts/common.sh
+      - ../reports:/app/reports # Persist test reports to host
     working_dir: /app
-    # Auto-start Streamlit when container starts (headless + no telemetry)
+    # Start minimal backend keepalive entrypoint
     command: ["python", "-m", "backend.main"]
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8501/_stcore/health || exit 1"]
+      test: ["CMD", "python", "-m", "backend.main", "--healthcheck"]
       interval: 5s
       timeout: 3s
       retries: 30

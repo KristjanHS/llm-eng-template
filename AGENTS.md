@@ -5,7 +5,7 @@ explicitly overrides them.
 
 ## Repo profile (read me first)  
 - **Project root:** `llm-eng-template`  
-- **Primary stack:** Python 3.12 (via `.venv`), Streamlit UI, Weaviate, Ollama, Docker Compose.  
+- **Primary stack:** Python 3.12 (via `.venv`), Ollama, Docker Compose.  
 - **Top modules:**  
   - `backend/` — ..., config.  
   - `frontend/` — ...
@@ -46,7 +46,7 @@ explicitly overrides them.
 
 ## Makefile-first checks  
 - Prefer `make` targets over ad-hoc commands for parity with CI:  
-  `make pyright`, `make ruff-fix`, `make ruff-format`, `make unit-local`, `make integration-local`, `make pre-commit`, `make pre-push`.
+  `make pyright`, `make ruff-fix`, `make ruff-format`, `make unit`, `make integration-local`, `make pre-commit`, `make pre-push`.
 
 ## Safe edit policy  
 - For risky edits (schema changes, cross-module refactors), propose a plan in the Tasklist first.  

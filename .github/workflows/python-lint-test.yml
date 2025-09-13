@@ -56,7 +56,7 @@ jobs:
           uv sync --group test --frozen
           uv pip check
       - name: Run unit tests (Makefile)
-        run: make unit-local
+        run: make unit
       # Keep the cache small in CI (safe to no-op locally).
       #- name: Prune uv cache for CI
       #  run: uv cache prune --ci
@@ -103,8 +103,6 @@ jobs:
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
         run: |
-          echo "Waiting for Weaviate..."
-          timeout 180s bash -c 'until curl -s http://localhost:8080/v1/.well-known/ready; do sleep 5; done'
           echo "Waiting for Ollama..."
           timeout 180s bash -c 'until docker compose -f docker/docker-compose.yml exec -T ollama ollama list; do sleep 5; done'
       - name: Prepare reports directories
@@ -137,8 +135,6 @@ jobs:
         run: docker compose -f docker/docker-compose.yml up -d --build
       - name: Wait for services to be ready
         run: |
-          echo "Waiting for Weaviate..."
-          timeout 180s bash -c 'until curl -s http://localhost:8080/v1/.well-known/ready; do sleep 5; done'
           echo "Waiting for Ollama..."
           timeout 180s bash -c 'until docker compose -f docker/docker-compose.yml exec -T ollama ollama list; do sleep 5; done'
       - name: Prepare reports directories
