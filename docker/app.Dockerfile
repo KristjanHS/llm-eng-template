@@ -6,10 +6,11 @@
 ############################
 # Build stage: wheels/venv #
 ############################
-
-# Pin this image by digest in CI for full reproducibility.
-# Example: python:3.12-slim-bookworm@sha256:...
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+# Override UV_IMAGE_REF to change base; default is digest‑pinned for reproducibility.
+# Got digest from `docker pull ghcr.io/astral-sh/uv:python3.12-bookworm-slim`
+ARG UV_IMAGE_REF=ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:c6fad5e08092142ea53fc03cbebb6304c5d06a25dd53ab450114f6c5f03376a7
+# hadolint ignore=DL3006
+FROM ${UV_IMAGE_REF} AS builder
 
 ENV VENV_PATH=/opt/venv \
   UV_PROJECT_ENVIRONMENT=/opt/venv \
@@ -35,7 +36,11 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
 ############################################
 # Runtime stage: Debian + apt + your app  #
 ############################################
-FROM python:3.12-slim-bookworm AS runtime
+# Override PYTHON_RUNTIME_IMAGE to change base; default is digest‑pinned for reproducibility.
+# Got digest from `docker pull python:3.12-slim-bookworm`
+ARG PYTHON_RUNTIME_IMAGE=python:3.12-slim-bookworm@sha256:3ad2a947749a3eb74acd9e00636ffa0def5aae0bbbd9fa4fff6253e404e2fe15
+# hadolint ignore=DL3006
+FROM ${PYTHON_RUNTIME_IMAGE} AS runtime
 
 # --- Debian snapshot date (set to base image date in CI) ---
 # Accepts YYYYMMDD or YYYYMMDDTHHMMSSZ. Example default is a placeholder.
