@@ -6,9 +6,11 @@
 # Lint / Type Check
 .PHONY: ruff-format ruff-fix yamlfmt pyright pre-commit
 # Tests
-.PHONY: unit-local integration-local
+.PHONY: unit integration
+# Docker
+.PHONY: docker-back docker-unit
 # Security / CI linters
-.PHONY: pip-audit semgrep-local actionlint
+.PHONY: pip-audit semgrep actionlint
 # CI helpers and Git
 .PHONY: uv-sync-test pre-push
 
@@ -37,12 +39,16 @@ help:
 	@echo "  pre-commit         - Run all pre-commit hooks on all files"
 	@echo ""
 	@echo "  -- Tests --"
-	@echo "  unit-local         - Run unit tests (local) and write reports"
-	@echo "  integration-local  - Run integration tests (uv preferred)"
+	@echo "  unit         - Run unit tests (local) and write reports"
+	@echo "  integration  - Run integration tests (uv preferred)"
+	@echo ""
+	@echo "  -- Docker --"
+	@echo "  docker-back  - Build and start services in background"
+	@echo "  docker-unit  - Run unit tests inside app container"
 	@echo ""
 	@echo "  -- Security / CI linters --"
 	@echo "  pip-audit          - Export from uv.lock and audit prod/dev+test deps"
-	@echo "  semgrep-local      - Run Semgrep locally via uvx (no metrics)"
+	@echo "  semgrep      - Run Semgrep locally via uvx (no metrics)"
 	@echo "  actionlint         - Lint GitHub workflows using actionlint in Docker"
 	@echo ""
 	@echo "  -- CI helpers & Git --"
@@ -59,7 +65,7 @@ setup-uv:
 	@./run_uv.sh
 
 # Run local integration tests; prefer uv if available
-integration-local:
+integration:
 	@if command -v uv >/dev/null 2>&1; then \
 		uv run -m pytest tests/integration -q ${PYTEST_ARGS}; \
 	else \
@@ -87,12 +93,12 @@ uv-sync-test:
 	uv pip check
 
 # New canonical unit test target
-unit-local:
+unit:
 	mkdir -p reports
 	@if [ -x .venv/bin/python ]; then \
-		.venv/bin/python -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml ${PYTEST_ARGS}; \
+		.venv/bin/python -m pytest tests/unit -n auto --maxfail=1 -q --html reports/unit.html --self-contained-html ${PYTEST_ARGS}; \
 	else \
-		uv run -m pytest tests/unit -n auto --maxfail=1 -q --junitxml=reports/junit.xml ${PYTEST_ARGS}; \
+		uv run -m pytest tests/unit -n auto --maxfail=1 -q --html reports/unit.html --self-contained-html ${PYTEST_ARGS}; \
 	fi
 
 
@@ -151,7 +157,7 @@ actionlint:
 		rhysd/actionlint:latest -color && echo "Actionlint: no issues found"
 
 # Run Semgrep locally using uvx, mirroring the local workflow
-semgrep-local:
+semgrep:
 	@if command -v uv >/dev/null 2>&1; then \
 		uvx --from semgrep semgrep ci \
 		  --config auto \
@@ -170,3 +176,19 @@ semgrep-local:
 		echo "uv not found. Install uv: https://astral.sh/uv"; \
 		exit 1; \
 	fi
+
+# Build and start docker services in background
+docker-back:
+	docker compose -f docker/docker-compose.yml up -d --build
+
+# Run unit tests inside the app container (venv-safe)
+docker-unit:
+	@# Ensure the app service is running before exec
+	@if ! docker compose -f docker/docker-compose.yml ps -q app | xargs -r docker inspect -f '{{.State.Running}}' 2>/dev/null | grep -q true; then \
+	  echo "app service is not running. Start it with 'make docker-back'."; \
+	  exit 1; \
+	fi
+	mkdir -p reports
+	docker compose -f docker/docker-compose.yml exec -T app \
+	  /opt/venv/bin/python -m pytest tests/unit -vv --maxfail=1 \
+	  --html reports/unit.html --self-contained-html ${PYTEST_ARGS}
