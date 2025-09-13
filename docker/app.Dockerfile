@@ -22,7 +22,7 @@ WORKDIR /app
 #    (Copy only files needed for dependency resolution)
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
-  uv sync --locked --no-install-project --no-dev
+  uv sync --locked --no-install-project --group test
 
 # uv phase 2: copy project and install the project as package
 
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
 COPY backend/ /app/backend/
 
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
-  uv sync --locked --group dev --group test;
+  uv sync --locked --group test;
 
 ############################################
 # Runtime stage: Debian + apt + your app  #
