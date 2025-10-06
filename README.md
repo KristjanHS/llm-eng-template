@@ -19,7 +19,7 @@ Template repo for LLM experimentation
 - Quick integration test run: `make integration-local`
 - Start Docker services (if needed): `docker compose -f docker/docker-compose.yml up -d --build`
 
-# Fallback to pip/venv: 
+### Fallback to pip/venv: 
 - Generate requirements.txt based on uv.lock: `make export-reqs`
 
 ## Local CI with Act
