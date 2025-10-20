@@ -1,0 +1,20 @@
+{
+  "cookiecutter": {
+    "project_name": "Cookiecutter Test",
+    "project_slug": "cookiecutter-test",
+    "author_name": "Your Name",
+    "_copy_without_render": [
+      "**/Makefile",
+      "**/.github/workflows/*"
+    ],
+    "_template": ".",
+    "_output_dir": "/home/kristjans/projects/llm-eng-template/__tmp__",
+    "_repo_dir": ".",
+    "_checkout": null
+  },
+  "_cookiecutter": {
+    "project_name": "LLM Engineering Template",
+    "project_slug": "{{ cookiecutter.project_name|slugify }}",
+    "author_name": "Your Name"
+  }
+}
