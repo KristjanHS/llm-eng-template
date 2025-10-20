@@ -4,14 +4,15 @@ commands to execute, quality gates to pass, and project conventions. Agents shou
 explicitly overrides them.
 
 ## Repo profile (read me first)  
-- **Project root:** `llm-eng-template`  
+- **Project root:** `{{ cookiecutter.project_slug }}`  
 - **Primary stack:** Python 3.12 (via `.venv`), Ollama, Docker Compose.  
 - **Top modules:**  
   - `backend/` — ..., config.  
   - `frontend/` — ...
   - `scripts/` — developer helpers
   - `tests/` — `unit/`, `integration/`, `e2e/` with `conftest.py`.  
-  - `docker/` — compose + Dockerfile.  
+  - `docker-compose.yml` — Docker Compose definition (project root).  
+  - `app.Dockerfile` — runtime image build (project root).  
   - `reports/` — artifacts, coverage.
 
 ## Golden rules (non-negotiable)  
