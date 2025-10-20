@@ -1,5 +1,9 @@
 {
   "project_name": "LLM Engineering Template",
-  "project_slug": "{{ cookiecutter.project_name | lower | replace(' ', '-') | replace('_', '-') }}",
-  "author_name": "Your Name"
+  "project_slug": "llm-eng-template",
+  "author_name": "Your Name",
+  "_copy_without_render": [
+    "{{ cookiecutter.project_slug }}/Makefile",
+    "{{ cookiecutter.project_slug }}/.github/workflows/*"
+  ]
 }
