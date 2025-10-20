@@ -1,4 +1,4 @@
-# {{ cookiecutter.project_name }}
+# cookie test1
 
 Scaffold generated from the LLM engineering template.
 
@@ -11,6 +11,14 @@ Scaffold generated from the LLM engineering template.
  - Optional: Act CLI for local CI runs (https://github.com/nektos/act).
 
 ---
+
+## connect to your github repo:
+
+`git init`
+`git add .`
+`git branch -M main`
+`git remote add origin git@github.com:Username/Repo-name.git`           # for SSH auth
+`git remote add origin https://github.com/Username/Repo-name.git`  # for HTTPS auth
 
 ## Quick Start
 

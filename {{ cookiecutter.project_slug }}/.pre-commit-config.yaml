@@ -70,7 +70,7 @@ repos:
         args:
           - --format
           - sarif
-        files: ^(Dockerfile|.*\.dockerfile|docker/.*\.Dockerfile)$
+        files: ^(Dockerfile|.*\.[Dd]ockerfile|docker/.*\.[Dd]ockerfile)$
         types: [dockerfile]
 
   - repo: https://github.com/PyCQA/bandit
