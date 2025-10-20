@@ -3,7 +3,7 @@
   "project_slug": "llm-eng-template",
   "author_name": "Your Name",
   "_copy_without_render": [
-    "{{ cookiecutter.project_slug }}/Makefile",
-    "{{ cookiecutter.project_slug }}/.github/workflows/*"
+    "**/Makefile",
+    "**/.github/workflows/*"
   ]
 }
