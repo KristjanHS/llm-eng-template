@@ -14,9 +14,9 @@ Scaffold generated from the LLM engineering template.
 
 ## Quick Start
 
-- Create .venv and install dev/test toolchain (editable install): `./run_uv.sh`
+- Create .venv and install dev/test toolchain (editable install): `bash ./run_uv.sh` or `uv sync --group test`
 - Run pre-commit via uv (uses the venv): `uv run pre-commit run --all-files`
-- Quick integration test run: `make integration`
+- Quick unit test run: `make unit`
 - Start Docker services (if needed): `docker compose up -d --build`
 
 ### Fallback to pip/venv: 
