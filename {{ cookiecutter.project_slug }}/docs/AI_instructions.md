@@ -13,7 +13,8 @@ Ports: app `http://localhost:8501`, Ollama `http://localhost:11434`.
 
 ### Project Structure
 
-- **Key Directories**: `backend/`, `frontend/`, `tests/`, `docker/`, `scripts/`
+- **Key Directories**: `backend/`, `frontend/`, `tests/`, `scripts/`
+- **Docker Assets**: `docker-compose.yml`, `app.Dockerfile` (project root)
 
 ### ML Strategy
 

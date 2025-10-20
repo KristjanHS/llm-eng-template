@@ -8,7 +8,7 @@
         "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "GITHUB_PAT": "KristjanHS/llm-eng-template"
+        "GITHUB_PAT": "${GITHUB_REPOSITORY}"
       }
     }
   }

@@ -1,4 +1,3 @@
-name: llm-eng-template
 services:
 
   # ---------- Local LLM server ---------------------------------------------------
@@ -12,7 +11,7 @@ services:
               count: all
               capabilities: [gpu]
     volumes:
-      - ../model_cache:/root/.ollama
+      - ./model_cache:/root/.ollama
     ports:
       - "127.0.0.1:11434:11434"
     healthcheck:
@@ -26,8 +25,8 @@ services:
   app:
     image: app
     build:
-      context: ..
-      dockerfile: docker/app.Dockerfile
+      context: .
+      dockerfile: app.Dockerfile
       target: runtime
       # Allow reproducible base images while keeping overrides simple.
       # Defaults mirror the digest-pinned ARGs in the Dockerfile.
@@ -35,13 +34,12 @@ services:
         UV_IMAGE_REF: ${UV_IMAGE_REF:-ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:c6fad5e08092142ea53fc03cbebb6304c5d06a25dd53ab450114f6c5f03376a7}
         PYTHON_RUNTIME_IMAGE: ${PYTHON_RUNTIME_IMAGE:-python:3.12-slim-bookworm@sha256:3ad2a947749a3eb74acd9e00636ffa0def5aae0bbbd9fa4fff6253e404e2fe15}
     volumes:
-      - ../backend:/app/backend # Live backend code
-      - ../frontend:/app/frontend # Live frontend code
-      - ../logs:/app/logs # Live log access
-      - ../tests:/app/tests # Mount tests for in-container testing
-      - ../scripts:/app/scripts # Shell helpers used by tests
-      - ../docker:/app/docker # Compose file presence checked by scripts/common.sh
-      - ../reports:/app/reports # Persist test reports to host
+      - ./backend:/app/backend # Live backend code
+      - ./frontend:/app/frontend # Live frontend code
+      - ./logs:/app/logs # Live log access
+      - ./tests:/app/tests # Mount tests for in-container testing
+      - ./scripts:/app/scripts # Shell helpers used by tests
+      - ./reports:/app/reports # Persist test reports to host
     working_dir: /app
     # Start minimal backend keepalive entrypoint
     command: ["python", "-m", "backend.main"]

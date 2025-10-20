@@ -179,16 +179,16 @@ semgrep:
 
 # Build and start docker services in background
 docker-back:
-	docker compose -f docker/docker-compose.yml up -d --build
+	docker compose up -d --build
 
 # Run unit tests inside the app container (venv-safe)
 docker-unit:
 	@# Ensure the app service is running before exec
-	@if ! docker compose -f docker/docker-compose.yml ps -q app | xargs -r docker inspect -f '{{.State.Running}}' 2>/dev/null | grep -q true; then \
+	@if ! docker compose ps -q app | xargs -r docker inspect -f '{{.State.Running}}' 2>/dev/null | grep -q true; then \
 	  echo "app service is not running. Start it with 'make docker-back'."; \
 	  exit 1; \
 	fi
 	mkdir -p reports
-	docker compose -f docker/docker-compose.yml exec -T app \
+	docker compose exec -T app \
 	  /opt/venv/bin/python -m pytest tests/unit -vv --maxfail=1 \
 	  --html reports/unit.html --self-contained-html ${PYTEST_ARGS}

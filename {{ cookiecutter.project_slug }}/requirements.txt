@@ -91,9 +91,9 @@ jsonpointer==3.0.0
 langchain==0.3.27
     # via
     #   langchain-community
-    #   llm-eng-template
+    #   {{ cookiecutter.project_slug }}
 langchain-community==0.3.29
-    # via llm-eng-template
+    # via {{ cookiecutter.project_slug }}
 langchain-core==0.3.75
     # via
     #   langchain
@@ -193,7 +193,7 @@ pytest-socket==0.7.0
 pytest-xdist==3.8.0
 python-dotenv==1.1.1
     # via
-    #   llm-eng-template
+    #   {{ cookiecutter.project_slug }}
     #   pydantic-settings
 pyyaml==6.0.2
     # via
@@ -219,7 +219,7 @@ requests-toolbelt==1.0.0
 rich==14.1.0
     # via
     #   bandit
-    #   llm-eng-template
+    #   {{ cookiecutter.project_slug }}
 ruff==0.12.12
 safetensors==0.6.2
     # via transformers
@@ -230,7 +230,7 @@ scipy==1.16.1
     #   scikit-learn
     #   sentence-transformers
 sentence-transformers==5.1.0
-    # via llm-eng-template
+    # via {{ cookiecutter.project_slug }}
 setuptools==80.9.0
     # via torch
 sniffio==1.3.1

@@ -1,8 +1,8 @@
 [project]
-name = "llm-eng-template"
+name = "{{ cookiecutter.project_slug }}"
 version = "0.1.0"
-description = "template for LLM experimentation"
-authors = [{ name=""}]
+description = "{{ cookiecutter.project_name }} project"
+authors = [{ name="{{ cookiecutter.author_name }}" }]
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -56,7 +56,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 # Limit package discovery to the Python code under `backend/` to avoid
-# setuptools attempting to package non-Python top-level folders like `docker/` or `logs/`.
+# setuptools attempting to package non-Python top-level assets like Docker build files or `logs/`.
 [tool.setuptools.packages.find]
 include = ["backend*"]
 

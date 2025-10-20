@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Ensure we're in the project root
-if [ ! -f "$PROJECT_ROOT/docker/docker-compose.yml" ]; then
+if [ ! -f "$PROJECT_ROOT/docker-compose.yml" ]; then
     echo "Error: Please run scripts from the project root directory."
     exit 1
 fi
@@ -17,7 +17,7 @@ fi
 cd "$PROJECT_ROOT"
 
 # Define all important paths relative to project root
-export DOCKER_COMPOSE_FILE="docker/docker-compose.yml"
+export DOCKER_COMPOSE_FILE="docker-compose.yml"
 export BACKEND_DIR="backend"
 export LOGS_DIR="logs"
 
