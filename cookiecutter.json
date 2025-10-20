@@ -4,8 +4,7 @@
   "author_name": "Your Name",
   "_copy_without_render": [
     "Makefile",
-    "**/Makefile",
-    ".github/workflows/*",
-    "**/.github/workflows/*"
+    ".github/*",
+    ".github/**/*",
   ]
 }
