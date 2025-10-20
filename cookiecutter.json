@@ -3,7 +3,9 @@
   "project_slug": "{{ cookiecutter.project_name|slugify }}",
   "author_name": "Your Name",
   "_copy_without_render": [
+    "Makefile",
     "**/Makefile",
+    ".github/workflows/*",
     "**/.github/workflows/*"
   ]
 }

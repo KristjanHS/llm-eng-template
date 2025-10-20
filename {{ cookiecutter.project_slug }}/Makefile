@@ -184,9 +184,9 @@ docker-back:
 # Run unit tests inside the app container (venv-safe)
 docker-unit:
 	@# Ensure the app service is running before exec
-	@if ! docker compose ps -q app | xargs -r docker inspect -f '{{.State.Running}}' 2>/dev/null | grep -q true; then \
-	  echo "app service is not running. Start it with 'make docker-back'."; \
-	  exit 1; \
+	@if ! docker compose ps -q app | xargs -r docker inspect 2>/dev/null | jq -e '.[0].State.Running == true' >/dev/null; then \
+    	echo "App container is not running"; \
+    	exit 1; \
 	fi
 	mkdir -p reports
 	docker compose exec -T app \
