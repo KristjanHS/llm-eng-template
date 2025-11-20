@@ -94,7 +94,7 @@ langchain==0.3.27
     #   {{ cookiecutter.project_slug }}
 langchain-community==0.3.29
     # via {{ cookiecutter.project_slug }}
-langchain-core==0.3.75
+langchain-core==0.3.80
     # via
     #   langchain
     #   langchain-community
